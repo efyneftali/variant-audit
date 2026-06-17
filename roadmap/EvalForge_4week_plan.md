@@ -27,7 +27,7 @@ Pairs with **EvalForge_SPEC.md** (what the project is) and **CONTENT_SYSTEM.md**
 - **Day 4 — MCP basics.** Read the spec; one MCP server, one tool `get_clinvar_record()` hitting real ClinVar. *Done:* Claude/MCP Inspector calls your tool, gets a real record.
 - **Day 5 — Thin slice + self-demo.** Linear flow: variant → ClinVar tool → retrieve criteria → classify. README stub. *Done:* one variant → classification + citation, top to bottom.
 
-*SD drill:* redraw your Intuit pipeline/notification/lineage systems from memory; start Alex Xu Vol 1.
+*SD drill:* redraw a past pipeline/notification/lineage system from memory; start Alex Xu Vol 1.
 
 ---
 
