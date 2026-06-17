@@ -1,0 +1,59 @@
+# Local stack. Bring up only what you need for the phase you're in.
+#
+#   Day 1+ (just the vector DB):      docker compose up -d qdrant
+#   Week 3 (add observability):       docker compose up -d
+#
+# Qdrant dashboard:  http://localhost:6333/dashboard
+# Grafana:           http://localhost:3000   (anonymous admin on)
+# Prometheus:        http://localhost:9090
+
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"     # HTTP + dashboard
+      - "6334:6334"     # gRPC
+    volumes:
+      - ../data/qdrant:/qdrant/storage
+
+  # --- everything below is Week 3 (observability) ---
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otel/config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel/config.yaml:ro
+    ports:
+      - "4317:4317"     # OTLP gRPC (the app exports here)
+      - "8889:8889"     # Prometheus scrape endpoint
+    depends_on:
+      - tempo
+
+  tempo:
+    image: grafana/tempo:latest
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml:ro
+      - ../data/tempo:/var/tempo
+    ports:
+      - "3200:3200"
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    volumes:
+      - ./grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - tempo

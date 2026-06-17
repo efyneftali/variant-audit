@@ -1,0 +1,19 @@
+# Core — needed to start (Day 1)
+anthropic>=0.40
+langgraph>=0.2
+qdrant-client>=1.12
+sentence-transformers>=3.0
+fastapi>=0.115
+uvicorn[standard]>=0.32
+python-dotenv>=1.0
+typer>=0.12
+ollama>=0.3          # local LLM prototyping client
+
+# Observability (Week 3+)
+opentelemetry-sdk>=1.28
+opentelemetry-exporter-otlp>=1.28
+opentelemetry-instrumentation-fastapi>=0.49b0
+
+# Dev
+pytest>=8.0
+ruff>=0.7

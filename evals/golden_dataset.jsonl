@@ -1,0 +1,3 @@
+{"id": "ex-001", "variant": "NM_007294.4:c.68_69del", "gene": "BRCA1", "gold_label": "P", "clinvar_significance": "Pathogenic", "review_stars": 3, "evidence_type": "frameshift/LoF", "difficulty": "easy", "expected_behavior": "classify"}
+{"id": "ex-002", "variant": "NM_000059.4:c.1114A>C", "gene": "BRCA2", "gold_label": "B", "clinvar_significance": "Benign", "review_stars": 2, "evidence_type": "population_frequency", "difficulty": "easy", "expected_behavior": "classify"}
+{"id": "ex-003", "variant": "NM_000038.6:c.3949G>A", "gene": "APC", "gold_label": "VUS", "clinvar_significance": "Conflicting interpretations of pathogenicity", "review_stars": 1, "evidence_type": "missense/conflicting", "difficulty": "hardest", "expected_behavior": "abstain"}
