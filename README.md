@@ -92,12 +92,13 @@ variant-audit/
 │   └── api.py             # FastAPI service
 ├── evals/                 # golden dataset, harness, scoring rubric, CI gates
 ├── infra/                 # docker-compose + observability configs (k8s/helm later)
+├── roadmap/               # spec + 4-week plan
 └── data/                  # corpus + local stores (gitignored)
 ```
 
 ## Roadmap
 
-The build progresses from local LLM → RAG → MCP tools → state machine → **eval harness** → Kubernetes + observability, with a v2 extension that adds a second agent (primer design) evaluated by the same harness. Design rationale in [`../EvalForge_SPEC.md`](../EvalForge_SPEC.md); detailed plan in [`../EvalForge_4week_plan.md`](../EvalForge_4week_plan.md). Day-to-day progress is tracked on a Notion board.
+The build progresses from local LLM → RAG → MCP tools → state machine → **eval harness** → Kubernetes + observability, with a v2 extension that adds a second agent (primer design) evaluated by the same harness. Design rationale in [`roadmap/EvalForge_SPEC.md`](roadmap/EvalForge_SPEC.md); detailed plan in [`roadmap/EvalForge_4week_plan.md`](roadmap/EvalForge_4week_plan.md). Day-to-day progress is tracked on a Notion board.
 
 ## License
 
