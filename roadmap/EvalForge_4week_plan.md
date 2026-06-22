@@ -1,6 +1,6 @@
 # EvalForge — 4-Week Full-Time Build Plan
 
-Pairs with **EvalForge_SPEC.md** (what the project is) and **CONTENT_SYSTEM.md** (documenting the journey). This is the day-by-day execution guide.
+Pairs with **EvalForge_SPEC.md** (what the project is). This is the day-by-day execution guide.
 
 **Goal = interview-readiness,** not "finished software": a clean public repo and the ability to whiteboard and defend the system cold, across two tracks — AI architecture (MCP + RAG + state machine) and eval rigor (the harness).
 
@@ -109,7 +109,7 @@ Ship the variant agent + harness first; it's a complete, differentiated project 
 Why it's high-leverage:
 - **Objective, automatable ground truth** — Tm, GC content, amplicon size, and specificity are all *computable*. Cleaner ground truth than classification; no LLM judge needed for the core metric.
 - **Proves the harness generalizes** across two structurally different agents: one fuzzy/judgment-based (classification), one deterministic/checkable (primer validity).
-- **Distinctive narrative** — "I designed primers at the bench; now I build AI tooling for the bench." Also intensely visual (genome browser) → strong @digitallyiterating content.
+- **Distinctive narrative** — "I designed primers at the bench; now I build AI tooling for the bench." Also intensely visual (genome browser).
 
 **Pitfall to avoid:** don't wrap an LLM around Primer3 for its own sake — Primer3 is deterministic and already good. The value is the *agentic orchestration* (NL → multi-tool workflow → validation) and the *eval story*, not replacing the algorithm.
 
@@ -120,7 +120,7 @@ The point is that *you* can explain this in an interview — so the rule is **yo
 1. **You state the day's goal in your own words first** — what you're building and why, in plain language and in the jargon.
 2. **You attempt it** (code or design), even roughly.
 3. **I refine, debug, and explain the gaps** — never just hand you a finished block to paste.
-4. **End each day with a 2-min "teach-back":** you explain what you built as if to a non-technical friend (this is your content *and* your interview rep). If you can't explain it, we revisit before moving on.
+4. **End each day with a 2-min "teach-back":** you explain what you built as if to a non-technical friend (this is your interview rep). If you can't explain it, we revisit before moving on.
 5. **I never get ahead of your understanding.** If I write code, I walk you through every decision and you restate it back.
 
 The test: at any exit gate you should be able to whiteboard that piece without notes. If you can't, it's not done — regardless of whether the code runs.

@@ -56,4 +56,4 @@ Python · LangGraph · Qdrant (Docker/local) · sentence-transformers (local emb
 | Ground-truth labels | ClinVar (free, authoritative) | Eval harness |
 
 ---
-*Companion docs in this folder: `EvalForge_4week_plan.md` (day-by-day execution) · `CONTENT_SYSTEM.md` (documenting the journey).*
+*Companion doc in this folder: `EvalForge_4week_plan.md` (day-by-day execution).*
