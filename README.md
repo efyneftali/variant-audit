@@ -77,6 +77,14 @@ uvicorn variant_audit.api:app --reload     # serve POST /classify
 make eval                                   # run the eval harness, print a scorecard
 ```
 
+## Testing
+
+```bash
+python3 -m pytest tests/ -v
+```
+
+Unit tests mock the Ollama/Anthropic calls — no live server or API credits required. For a manual end-to-end smoke test against a real provider, run `python3 scratch.py` (requires `ollama serve` running and/or a valid `ANTHROPIC_API_KEY`).
+
 ## Project structure
 
 ```
