@@ -16,3 +16,6 @@ models/
 
 # OS
 .DS_Store
+
+# Scratch
+scratch.py
