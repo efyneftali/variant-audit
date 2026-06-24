@@ -27,7 +27,8 @@ Built for macOS + [Homebrew](https://brew.sh).
 
 **Core (to run locally):**
 - Python 3.11+
-- A container runtime — [Colima](https://github.com/abiosoft/colima) + Docker (`brew install colima docker`)
+- A container runtime — [Colima](https://github.com/abiosoft/colima) + Docker + Docker Compose (`brew install colima docker docker-compose`)
+  - Homebrew's `docker-compose` formula doesn't register itself as a `docker` CLI plugin, so `docker compose` may fail with `unknown shorthand flag: 'f'`. Fix once: `mkdir -p ~/.docker/cli-plugins && ln -sfn "$(brew --prefix docker-compose)/bin/docker-compose" ~/.docker/cli-plugins/docker-compose`
 - [Ollama](https://ollama.com) for local LLM inference (`brew install ollama`)
 - Qdrant (vector store) — runs as a container, no install
 - Python dependencies in `requirements.txt`
