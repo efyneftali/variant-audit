@@ -1,0 +1,46 @@
+@startuml llm_module
+title Variant Audit — current state (Day 1: provider-agnostic LLM call)
+
+skinparam componentStyle rectangle
+
+actor "Caller\n(scratch.py / future graph nodes)" as Caller
+
+package "variant_audit" {
+  component "config.py\n(Settings)" as Config
+
+  component "llm.py" as LLM {
+    component "complete(prompt, system, purpose, max_tokens)" as Complete
+    component "_model_for(purpose)" as ModelFor
+    component "_complete_ollama(...)" as Ollama
+    component "_complete_anthropic(...)" as Anthropic
+  }
+}
+
+cloud "Ollama server\n(local, free)" as OllamaServer
+cloud "Anthropic API\n(Claude)" as AnthropicAPI
+
+Caller --> Complete : prompt + purpose
+
+Complete --> ModelFor : resolve model
+ModelFor --> Config : llm_provider,\nollama_model / ollama_judge_model,\nanthropic_model / anthropic_judge_model
+
+Complete --> Ollama : if llm_provider == "ollama"
+Complete --> Anthropic : if llm_provider == "anthropic"
+
+Ollama --> OllamaServer : ollama.chat()
+Anthropic --> AnthropicAPI : messages.create()
+
+note right of Complete
+  Single entry point — every LLM
+  call in the codebase goes through
+  here. Swapping providers is one
+  env var (LLM_PROVIDER).
+end note
+
+note bottom of ModelFor
+  purpose in {"grade", "groundedness",
+  "eval_judge"} -> judge model (cheaper)
+  else -> main model
+end note
+
+@enduml
