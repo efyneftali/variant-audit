@@ -38,7 +38,7 @@ Built for macOS + [Homebrew](https://brew.sh).
 **Optional (later phases):**
 - `kind` + `helm` + `kubectl` — Kubernetes deployment with Prometheus/Grafana observability
 - `awscli` + `eksctl` — cloud (EKS) deployment
-- `graphviz` — regenerate the architecture diagrams
+- `plantuml` (`brew install plantuml`, pulls in `graphviz`/Java) — regenerate diagrams from `docs/diagrams/*.puml` via `make diagrams`
 
 A Hugging Face account is **not** required — the default embedding model (`all-MiniLM-L6-v2`) downloads anonymously.
 
@@ -80,7 +80,7 @@ make eval                                   # run the eval harness, print a scor
 ## Testing
 
 ```bash
-python3 -m pytest tests/ -v
+make test   # or: python3 -m pytest tests/ -v
 ```
 
 Unit tests mock the Ollama/Anthropic calls — no live server or API credits required. For a manual end-to-end smoke test against a real provider, run `python3 scratch.py` (requires `ollama serve` running and/or a valid `ANTHROPIC_API_KEY`).
@@ -104,6 +104,12 @@ variant-audit/
 ├── roadmap/               # spec + 4-week plan
 └── data/                  # corpus + local stores (gitignored)
 ```
+
+## Current state (Day 1)
+
+`llm.py` is implemented — the provider-agnostic LLM call every other component routes through. `complete()` picks a model via `_model_for()` (judge model for grading/judging purposes, main model otherwise) and dispatches to `_complete_ollama()` or `_complete_anthropic()` based on `LLM_PROVIDER`. Diagram source in [`docs/diagrams/llm_module.puml`](docs/diagrams/llm_module.puml) — regenerate with `make diagrams` after any architecture change.
+
+![LLM module — current state](docs/img/llm_module.png)
 
 ## Roadmap
 
