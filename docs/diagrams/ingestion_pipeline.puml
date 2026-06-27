@@ -1,9 +1,10 @@
 @startuml ingestion_pipeline
-title Variant Audit — current state (Day 2: chunk + embed + ingest into Qdrant)
+title Variant Audit — current state (Day 2: chunk + embed + ingest + retrieve)
 
 skinparam componentStyle rectangle
 
 actor "Caller\n(ingest_directory entrypoint)" as Caller
+actor "Caller\n(semantic_search — future graph node)" as SearchCaller
 
 package "variant_audit" {
   component "config.py\n(Settings)" as Config
@@ -11,6 +12,11 @@ package "variant_audit" {
   component "ingestion.py" as Ingestion {
     component "chunk_text(text, chunk_size, overlap)" as ChunkText
     component "ingest_directory(corpus_dir)" as IngestDir
+  }
+
+  component "retrieval.py" as Retrieval {
+    component "semantic_search(query, top_k)" as SemSearch
+    component "RetrievedChunk\n(text, source, score)" as RetrievedChunk
   }
 
   component "embeddings.py" as Embeddings {
@@ -24,6 +30,7 @@ package "variant_audit" {
 cloud "Qdrant\n(vector store)" as Qdrant
 
 Caller --> IngestDir : corpus_dir = "data/corpus"
+SearchCaller --> SemSearch : query, top_k
 
 IngestDir --> Config : qdrant_url, collection
 IngestDir --> Qdrant : collection_exists? / create_collection\n(size = embedding_dim(), distance = COSINE)
@@ -37,7 +44,13 @@ EmbedTexts --> Model : encode(texts, normalize_embeddings=True)
 
 IngestDir --> Qdrant : upsert(PointStruct(\n  id = uuid5(source+chunk_index+text),\n  vector, payload={text, source, chunk_index}))
 
-EmbedQuery ..> EmbedTexts : embed_texts([query])[0]\n(used later by retrieval.py)
+EmbedQuery ..> EmbedTexts : embed_texts([query])[0]
+
+SemSearch --> Config : qdrant_url, collection, top_k default
+SemSearch --> EmbedQuery : embed the query string
+SemSearch --> Qdrant : query_points(collection_name, query=vector, limit=top_k)
+SemSearch --> RetrievedChunk : map each ScoredPoint\n(payload.text, payload.source, score)
+SemSearch --> SearchCaller : list[RetrievedChunk]
 
 note right of ChunkText
   Sliding word-window splitter.
@@ -59,6 +72,15 @@ note bottom of IngestDir
   file + same chunk -> same id
   -> Qdrant updates in place
   instead of duplicating.
+end note
+
+note bottom of SemSearch
+  query_points() returns hits sorted
+  by descending cosine similarity
+  (since the collection is COSINE
+  distance and embeddings are
+  normalized). top_k caps how many
+  ScoredPoints come back.
 end note
 
 @enduml
