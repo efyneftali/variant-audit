@@ -1,0 +1,64 @@
+@startuml ingestion_pipeline
+title Variant Audit — current state (Day 2: chunk + embed + ingest into Qdrant)
+
+skinparam componentStyle rectangle
+
+actor "Caller\n(ingest_directory entrypoint)" as Caller
+
+package "variant_audit" {
+  component "config.py\n(Settings)" as Config
+
+  component "ingestion.py" as Ingestion {
+    component "chunk_text(text, chunk_size, overlap)" as ChunkText
+    component "ingest_directory(corpus_dir)" as IngestDir
+  }
+
+  component "embeddings.py" as Embeddings {
+    component "_model()\n(cached SentenceTransformer)" as Model
+    component "embedding_dim()" as EmbedDim
+    component "embed_texts(texts)" as EmbedTexts
+    component "embed_query(query)" as EmbedQuery
+  }
+}
+
+cloud "Qdrant\n(vector store)" as Qdrant
+
+Caller --> IngestDir : corpus_dir = "data/corpus"
+
+IngestDir --> Config : qdrant_url, collection
+IngestDir --> Qdrant : collection_exists? / create_collection\n(size = embedding_dim(), distance = COSINE)
+IngestDir --> EmbedDim : size the collection
+
+IngestDir --> ChunkText : for each .md/.txt file\n-> read_text()
+ChunkText --> Config : chunk_size, chunk_overlap defaults
+
+IngestDir --> EmbedTexts : embed all chunks\nfor this file (batched)
+EmbedTexts --> Model : encode(texts, normalize_embeddings=True)
+
+IngestDir --> Qdrant : upsert(PointStruct(\n  id = uuid5(source+chunk_index+text),\n  vector, payload={text, source, chunk_index}))
+
+EmbedQuery ..> EmbedTexts : embed_texts([query])[0]\n(used later by retrieval.py)
+
+note right of ChunkText
+  Sliding word-window splitter.
+  stride = chunk_size - overlap.
+  Last window is shifted back
+  (not truncated) to avoid a
+  tiny trailing fragment.
+end note
+
+note right of Model
+  lru_cache(maxsize=1) — model
+  loads from disk once per
+  process, reused after that.
+end note
+
+note bottom of IngestDir
+  Deterministic point IDs make
+  re-ingestion idempotent: same
+  file + same chunk -> same id
+  -> Qdrant updates in place
+  instead of duplicating.
+end note
+
+@enduml
