@@ -4,7 +4,6 @@ This builds the RAG knowledge base (the "rulebook"). Chunking is the highest-
 leverage knob in RAG — chunk size/overlap directly affect retrieval quality, so
 this is something you'll tune and measure with the eval harness.
 
-TODO(day-2): implement chunk_text + ingest_directory.
 """
 
 from __future__ import annotations
