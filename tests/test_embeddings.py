@@ -17,7 +17,7 @@ from src.variant_audit import embeddings
 @pytest.fixture
 def fake_model(monkeypatch):
     model = MagicMock()
-    model.get_sentence_embedding_dimension.return_value = 384
+    model.get_embedding_dimension.return_value = 384
     model.encode.return_value = np.array([[0.1, 0.2, 0.3]])
     monkeypatch.setattr(embeddings, "_model", lambda: model)
     return model

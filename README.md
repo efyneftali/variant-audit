@@ -87,31 +87,18 @@ Unit tests mock the Ollama/Anthropic calls — no live server or API credits req
 
 ## MCP servers
 
-`mcp_server.py` wraps `mcp_tools/` (currently `clinvar.py`) as a Model Context Protocol server, so the tools are callable by any MCP client (agent frameworks, the MCP Inspector), not just direct Python imports.
-
-The official `mcp` SDK requires Python ≥3.10, while the main project `.venv` is pinned to 3.9 — so the MCP server runs from a **separate, lightweight venv** rather than upgrading the whole project's interpreter:
+`mcp_server.py` wraps `mcp_tools/` (currently `clinvar.py`) as a Model Context Protocol server, so the tools are callable by any MCP client (agent frameworks, the MCP Inspector), not just direct Python imports. `mcp` is a regular dependency in `requirements.txt` — same `.venv` as everything else (needs Python ≥3.10, see Requirements above).
 
 ```bash
-# one-time setup — needs a Python 3.10+ interpreter (e.g. via brew: `brew install python@3.12`)
-python3.12 -m venv .venv-mcp
-.venv-mcp/bin/pip install mcp requests pytest
-
-# run the server directly
-PYTHONPATH=src .venv-mcp/bin/python -m variant_audit.mcp_server
+PYTHONPATH=src .venv/bin/python -m variant_audit.mcp_server
 ```
 
-**Automated tests** (`tests/test_mcp_server.py`) run under `.venv-mcp`, not the main `.venv` — `mcp` isn't installed there, so `pytest.importorskip("mcp")` makes the main test suite skip this file cleanly instead of erroring:
-
-```bash
-PYTHONPATH=src .venv-mcp/bin/python -m pytest tests/test_mcp_server.py -v
-```
-
-Covers the tool's delegation logic (mocked, fast) and one real protocol round-trip over stdio (marked `integration`, hits the live ClinVar API).
+**Automated tests** (`tests/test_mcp_server.py`) run as part of the normal suite (`make test`) — covers the tool's delegation logic (mocked, fast) and one real protocol round-trip over stdio (marked `integration`, hits the live ClinVar API).
 
 **Testing it with the MCP Inspector** (visual, browser-based; requires Node.js — `brew install node`):
 
 ```bash
-npx @modelcontextprotocol/inspector -- env PYTHONPATH=src .venv-mcp/bin/python -m variant_audit.mcp_server
+npx @modelcontextprotocol/inspector -- env PYTHONPATH=src .venv/bin/python -m variant_audit.mcp_server
 ```
 
 Opens a browser UI. Click "List Tools" → `clinvar_lookup` → enter `{"variant": "rs28897696"}` → "Run Tool" to see a real ClinVar record come back through the protocol.
@@ -127,7 +114,7 @@ variant-audit/
 │   ├── ingestion.py       # chunk + embed ACMG guidelines → Qdrant
 │   ├── retrieval.py       # semantic search (RAG)
 │   ├── mcp_tools/         # ClinVar, gnomAD, UCSC, AlphaMissense, Ensembl
-│   ├── mcp_server.py      # exposes mcp_tools/ over MCP (separate .venv-mcp, Python 3.10+)
+│   ├── mcp_server.py      # exposes mcp_tools/ over MCP
 │   ├── graph.py           # LangGraph state machine (the agent)
 │   ├── telemetry.py       # OpenTelemetry traces + metrics
 │   └── api.py             # FastAPI service

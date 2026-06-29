@@ -1,22 +1,10 @@
-"""Tests for mcp_server.py.
-
-The `mcp` SDK needs Python >=3.10, but the main project .venv is pinned to
-3.9 — so this file is meant to be run with .venv-mcp's interpreter:
-
-    PYTHONPATH=src .venv-mcp/bin/python -m pytest tests/test_mcp_server.py -v
-
-`pytest.importorskip` below means running this under the main .venv (where
-`mcp` isn't installed) skips these tests instead of erroring out the whole
-suite.
-"""
+"""Tests for mcp_server.py."""
 
 import asyncio
 
 import pytest
 
-pytest.importorskip("mcp")
-
-from variant_audit import mcp_server  # noqa: E402
+from src.variant_audit import mcp_server
 
 
 @pytest.fixture
