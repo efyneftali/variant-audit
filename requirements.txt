@@ -2,6 +2,7 @@
 anthropic>=0.40
 langgraph>=0.2
 qdrant-client>=1.16.1
+requests>=2.32
 sentence-transformers>=3.0
 fastapi>=0.115
 uvicorn[standard]>=0.32
