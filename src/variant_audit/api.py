@@ -9,6 +9,7 @@ TODO(day-6+): wire /classify to the real graph; add telemetry instrumentation.
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+from .classify import classify_variant
 from .rag import answer_question
 
 app = FastAPI(title="variant-audit")
@@ -41,5 +42,5 @@ def ask_endpoint(req: AskRequest) -> AskResponse:
 
 @app.post("/classify")
 def classify_endpoint(req: ClassifyRequest) -> dict:
-    """Run a variant through the agent and return classification + evidence + flags."""
-    raise NotImplementedError("TODO(day-6): call graph.ask(req.variant) and shape the response")
+    """Classify a variant using ClinVar evidence + ACMG criteria RAG."""
+    return classify_variant(req.variant)
