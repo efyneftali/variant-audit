@@ -20,7 +20,7 @@ def _model() -> SentenceTransformer:
 
 def embedding_dim() -> int:
     """Vector dimension of the current model (Qdrant needs this to size the collection)."""
-    return _model().get_sentence_embedding_dimension()
+    return _model().get_embedding_dimension()
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:

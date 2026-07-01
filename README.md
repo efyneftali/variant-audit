@@ -85,6 +85,24 @@ make test   # or: python3 -m pytest tests/ -v
 
 Unit tests mock the Ollama/Anthropic calls — no live server or API credits required. For a manual end-to-end smoke test against a real provider, run `python3 scratch.py` (requires `ollama serve` running and/or a valid `ANTHROPIC_API_KEY`).
 
+## MCP servers
+
+`mcp_server.py` wraps `mcp_tools/` (currently `clinvar.py`) as a Model Context Protocol server, so the tools are callable by any MCP client (agent frameworks, the MCP Inspector), not just direct Python imports. `mcp` is a regular dependency in `requirements.txt` — same `.venv` as everything else (needs Python ≥3.10, see Requirements above).
+
+```bash
+PYTHONPATH=src .venv/bin/python -m variant_audit.mcp_server
+```
+
+**Automated tests** (`tests/test_mcp_server.py`) run as part of the normal suite (`make test`) — covers the tool's delegation logic (mocked, fast) and one real protocol round-trip over stdio (marked `integration`, hits the live ClinVar API).
+
+**Testing it with the MCP Inspector** (visual, browser-based; requires Node.js — `brew install node`):
+
+```bash
+npx @modelcontextprotocol/inspector -- env PYTHONPATH=src .venv/bin/python -m variant_audit.mcp_server
+```
+
+Opens a browser UI. Click "List Tools" → `clinvar_lookup` → enter `{"variant": "rs28897696"}` → "Run Tool" to see a real ClinVar record come back through the protocol.
+
 ## Project structure
 
 ```
@@ -96,6 +114,7 @@ variant-audit/
 │   ├── ingestion.py       # chunk + embed ACMG guidelines → Qdrant
 │   ├── retrieval.py       # semantic search (RAG)
 │   ├── mcp_tools/         # ClinVar, gnomAD, UCSC, AlphaMissense, Ensembl
+│   ├── mcp_server.py      # exposes mcp_tools/ over MCP
 │   ├── graph.py           # LangGraph state machine (the agent)
 │   ├── telemetry.py       # OpenTelemetry traces + metrics
 │   └── api.py             # FastAPI service

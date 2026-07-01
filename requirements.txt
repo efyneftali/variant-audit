@@ -9,6 +9,7 @@ uvicorn[standard]>=0.32
 python-dotenv>=1.0
 typer>=0.12
 ollama>=0.3          # local LLM prototyping client
+mcp>=1.0             # Model Context Protocol server (mcp_server.py); needs Python >=3.10
 
 # Observability (Week 3+)
 opentelemetry-sdk>=1.28
