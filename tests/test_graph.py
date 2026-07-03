@@ -36,6 +36,16 @@ ENSEMBL_RESULT = {
     "allele_string": "-/G",
 }
 
+UCSC_RESULT = {
+    "variant": "rs28897696",
+    "found": True,
+    "phylop": 1.46348,
+    "phastcons": 1,
+    "chrom": "17",
+    "start": 43057066,
+    "end": 43057065,
+}
+
 
 @pytest.fixture
 def fake_stack(monkeypatch):
@@ -50,6 +60,7 @@ def fake_stack(monkeypatch):
     monkeypatch.setattr(graph, "get_clinvar_record", lambda v: clinvar_result)
     monkeypatch.setattr(graph, "get_allele_frequency", lambda v: GNOMAD_RESULT)
     monkeypatch.setattr(graph, "get_gene_consequence", lambda v: ENSEMBL_RESULT)
+    monkeypatch.setattr(graph, "get_genomic_context", lambda v, consequence=None: UCSC_RESULT)
 
     chunks = [
         SimpleNamespace(text="PVS1 applies to null variants.", source="acmg_criteria.md", score=0.9),
@@ -70,11 +81,16 @@ def fake_stack(monkeypatch):
 
 
 class TestGatherEvidence:
-    def test_accumulates_clinvar_gnomad_ensembl_under_their_keys(self, fake_stack):
+    def test_accumulates_all_four_sources_under_their_keys(self, fake_stack):
         clinvar_result, _, _ = fake_stack
         result = graph.gather_evidence({"variant": "rs28897696"})
         assert result == {
-            "evidence": {"clinvar": clinvar_result, "gnomad": GNOMAD_RESULT, "ensembl": ENSEMBL_RESULT}
+            "evidence": {
+                "clinvar": clinvar_result,
+                "gnomad": GNOMAD_RESULT,
+                "ensembl": ENSEMBL_RESULT,
+                "ucsc": UCSC_RESULT,
+            }
         }
 
     def test_passes_variant_through_to_clinvar_lookup(self, monkeypatch):
@@ -82,6 +98,7 @@ class TestGatherEvidence:
         monkeypatch.setattr(graph, "get_clinvar_record", lambda v: captured.update({"variant": v}) or {"found": False, "matches": []})
         monkeypatch.setattr(graph, "get_allele_frequency", lambda v: {"found": False})
         monkeypatch.setattr(graph, "get_gene_consequence", lambda v: {"found": False})
+        monkeypatch.setattr(graph, "get_genomic_context", lambda v, consequence=None: {"found": False})
         graph.gather_evidence({"variant": "rs999"})
         assert captured["variant"] == "rs999"
 
@@ -90,6 +107,7 @@ class TestGatherEvidence:
         monkeypatch.setattr(graph, "get_clinvar_record", lambda v: {"found": False})
         monkeypatch.setattr(graph, "get_allele_frequency", lambda v: captured.update({"variant": v}) or {"found": False})
         monkeypatch.setattr(graph, "get_gene_consequence", lambda v: {"found": False})
+        monkeypatch.setattr(graph, "get_genomic_context", lambda v, consequence=None: {"found": False})
         graph.gather_evidence({"variant": "rs999"})
         assert captured["variant"] == "rs999"
 
@@ -98,19 +116,39 @@ class TestGatherEvidence:
         monkeypatch.setattr(graph, "get_clinvar_record", lambda v: {"found": False})
         monkeypatch.setattr(graph, "get_allele_frequency", lambda v: {"found": False})
         monkeypatch.setattr(graph, "get_gene_consequence", lambda v: captured.update({"variant": v}) or {"found": False})
+        monkeypatch.setattr(graph, "get_genomic_context", lambda v, consequence=None: {"found": False})
         graph.gather_evidence({"variant": "rs999"})
         assert captured["variant"] == "rs999"
+
+    def test_reuses_ensembl_result_for_ucsc_instead_of_refetching(self, monkeypatch):
+        # gather_evidence must not trigger a second, slow VEP round-trip for UCSC
+        ensembl_result = {"found": True, "chrom": "17", "start": 1, "end": 1}
+        captured = {}
+        monkeypatch.setattr(graph, "get_clinvar_record", lambda v: {"found": False})
+        monkeypatch.setattr(graph, "get_allele_frequency", lambda v: {"found": False})
+        monkeypatch.setattr(graph, "get_gene_consequence", lambda v: ensembl_result)
+        monkeypatch.setattr(
+            graph,
+            "get_genomic_context",
+            lambda v, consequence=None: captured.update({"consequence": consequence}) or {"found": False},
+        )
+
+        graph.gather_evidence({"variant": "rs999"})
+
+        assert captured["consequence"] is ensembl_result
 
     def test_degrades_gracefully_when_a_source_has_no_record(self, monkeypatch):
         monkeypatch.setattr(graph, "get_clinvar_record", lambda v: {"variant": v, "found": False})
         monkeypatch.setattr(graph, "get_allele_frequency", lambda v: {"variant": v, "found": False})
         monkeypatch.setattr(graph, "get_gene_consequence", lambda v: {"variant": v, "found": False})
+        monkeypatch.setattr(graph, "get_genomic_context", lambda v, consequence=None: {"variant": v, "found": False})
 
         result = graph.gather_evidence({"variant": "rs00000000000"})
 
         assert result["evidence"]["clinvar"]["found"] is False
         assert result["evidence"]["gnomad"]["found"] is False
         assert result["evidence"]["ensembl"]["found"] is False
+        assert result["evidence"]["ucsc"]["found"] is False
 
 
 class TestRetrieveCriteria:
@@ -197,7 +235,12 @@ class TestBuildGraphAndAsk:
         result = graph.ask("rs28897696")
 
         assert result["variant"] == "rs28897696"
-        assert result["evidence"] == {"clinvar": clinvar_result, "gnomad": GNOMAD_RESULT, "ensembl": ENSEMBL_RESULT}
+        assert result["evidence"] == {
+            "clinvar": clinvar_result,
+            "gnomad": GNOMAD_RESULT,
+            "ensembl": ENSEMBL_RESULT,
+            "ucsc": UCSC_RESULT,
+        }
         assert result["criteria"] == chunks
         assert result["classification"] == "Classification: Uncertain Significance\nCriteria used: none identified"
 
@@ -225,9 +268,10 @@ class TestParityWithClassifyVariant:
             monkeypatch.setattr(module, "semantic_search", lambda q: chunks)
             monkeypatch.setattr(module.llm, "complete", lambda *a, **kw: "Classification: Pathogenic\nCriteria used: PVS1")
 
-        # graph.gather_evidence also queries gnomAD/Ensembl; classify_variant doesn't.
+        # graph.gather_evidence also queries gnomAD/Ensembl/UCSC; classify_variant doesn't.
         monkeypatch.setattr(graph, "get_allele_frequency", lambda v: {"found": False})
         monkeypatch.setattr(graph, "get_gene_consequence", lambda v: {"found": False})
+        monkeypatch.setattr(graph, "get_genomic_context", lambda v, consequence=None: {"found": False})
 
         flat_result = classify.classify_variant("rs80357906")
         graph_result = graph.ask("rs80357906")
