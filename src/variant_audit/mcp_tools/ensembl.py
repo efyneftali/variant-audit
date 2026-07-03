@@ -49,6 +49,7 @@ def get_gene_consequence(variant: str) -> dict:
     try:
         top = results[0]
         most_severe = top.get("most_severe_consequence")
+        allele_string = top.get("allele_string")
         primary = _primary_transcript_consequence(most_severe, top.get("transcript_consequences", []))
         return {
             "variant": variant,
@@ -59,7 +60,12 @@ def get_gene_consequence(variant: str) -> dict:
             "chrom": top.get("seq_region_name"),
             "start": top.get("start"),
             "end": top.get("end"),
-            "allele_string": top.get("allele_string"),
+            "allele_string": allele_string,
+            # the exact ref/alt bases behind `primary`'s consequence call — needed
+            # to look up a specific substitution (e.g. in AlphaMissense's table),
+            # not just "this position has a missense consequence somewhere"
+            "ref": allele_string.split("/")[0] if allele_string else None,
+            "alt": primary.get("variant_allele"),
         }
     except (KeyError, IndexError, TypeError) as e:
         logger.exception("ensembl vep returned unexpected shape variant=%s body=%s", variant, results)
