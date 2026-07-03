@@ -1,6 +1,6 @@
 """The agent — a corrective-classification LangGraph state machine.
 
-Flow (bounded loops guarantee termination — the senior design point):
+Flow (bounded loops guarantee termination):
 
     gather_evidence -> retrieve_criteria -> grade_evidence --(sufficient)--> classify
             ^                                      |                              |
@@ -17,14 +17,18 @@ Flow (bounded loops guarantee termination — the senior design point):
   classify          : combine criteria -> Pathogenic / VUS / Benign + cited criteria
   check_grounded    : are the cited criteria actually supported? (purpose="groundedness")
 
-TODO(day-6): port a linear version into a StateGraph.
 TODO(day-8..9): add the grading node + conditional edges + bounded loops.
-TODO(day-10): the classify node combines ACMG criteria.
 """
 
 from typing import TypedDict
 
+from langgraph.graph import END, StateGraph
+
+from .classify import SYSTEM_PROMPT
 from .config import settings
+from . import llm
+from .mcp_tools.clinvar import get_clinvar_record
+from .retrieval import semantic_search
 
 
 class GraphState(TypedDict):
@@ -41,12 +45,23 @@ class GraphState(TypedDict):
 
 def gather_evidence(state: GraphState) -> dict:
     """Call the MCP tools for this variant and accumulate structured evidence."""
-    raise NotImplementedError("TODO(day-8): call mcp_tools and collect results")
+    clinvar_record = get_clinvar_record(state["variant"])
+    return {"evidence": {"clinvar": clinvar_record}}
 
 
 def retrieve_criteria(state: GraphState) -> dict:
     """RAG: retrieve the ACMG criteria relevant to this variant/evidence."""
-    raise NotImplementedError("TODO(day-6): semantic_search for applicable criteria")
+    matches = state["evidence"].get("clinvar", {}).get("matches", [])
+
+    if matches:
+        significances = ", ".join(m["clinical_significance"] for m in matches)
+        hgvs_names = ", ".join(m["hgvs"] for m in matches)
+        search_query = f"{hgvs_names} {significances}"
+    else:
+        search_query = state["variant"]
+
+    chunks = semantic_search(search_query)
+    return {"criteria": chunks}
 
 
 def grade_evidence(state: GraphState) -> dict:
@@ -56,7 +71,31 @@ def grade_evidence(state: GraphState) -> dict:
 
 def classify(state: GraphState) -> dict:
     """Combine ACMG criteria into a classification with cited criteria."""
-    raise NotImplementedError("TODO(day-10): llm.complete(purpose='generate')")
+    variant = state["variant"]
+    matches = state["evidence"].get("clinvar", {}).get("matches", [])
+    chunks = state["criteria"]
+
+    criteria_text = "\n\n".join(f"[{c.source}]\n{c.text}" for c in chunks)
+
+    if matches:
+        evidence_lines = [
+            f"HGVS: {m['hgvs']}\n"
+            f"ClinVar significance: {m['clinical_significance']}\n"
+            f"Review status: {m['review_status']}"
+            for m in matches
+        ]
+        evidence_text = "\n\n".join(evidence_lines)
+    else:
+        evidence_text = f"No ClinVar record found for {variant}."
+
+    prompt = (
+        f"Variant: {variant}\n\n"
+        f"== ClinVar Evidence ==\n{evidence_text}\n\n"
+        f"== Relevant ACMG Criteria ==\n{criteria_text}\n\n"
+        f"Classify this variant."
+    )
+    answer = llm.complete(prompt, system=SYSTEM_PROMPT, purpose="generate")
+    return {"classification": answer}
 
 
 def check_grounded(state: GraphState) -> dict:
@@ -77,10 +116,33 @@ def route_after_groundedness(state: GraphState) -> str:
 
 
 def build_graph():
-    """Wire the nodes + edges into a compiled StateGraph."""
-    raise NotImplementedError("TODO(day-6..9): construct, set entry point, add edges, compile")
+    """Wire the nodes + edges into a compiled StateGraph.
+
+    Linear for now (day-6): gather_evidence -> retrieve_criteria -> classify -> END.
+    grade_evidence/check_grounded and their conditional edges land day 8-9.
+    """
+    graph = StateGraph(GraphState)
+    graph.add_node("gather_evidence", gather_evidence)
+    graph.add_node("retrieve_criteria", retrieve_criteria)
+    graph.add_node("classify", classify)
+
+    graph.set_entry_point("gather_evidence")
+    graph.add_edge("gather_evidence", "retrieve_criteria")
+    graph.add_edge("retrieve_criteria", "classify")
+    graph.add_edge("classify", END)
+
+    return graph.compile()
 
 
 def ask(variant: str) -> dict:
     """Run one variant through the graph; return the final state."""
-    raise NotImplementedError("TODO(day-6): invoke build_graph() with an initial GraphState")
+    initial_state: GraphState = {
+        "variant": variant,
+        "evidence": {},
+        "criteria": [],
+        "classification": "",
+        "rewrites": 0,
+        "gen_retries": 0,
+        "grounded": False,
+    }
+    return build_graph().invoke(initial_state)
