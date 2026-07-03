@@ -14,6 +14,8 @@ Inspect/test it with the MCP Inspector (needs Node.js):
 from mcp.server.fastmcp import FastMCP
 
 from .mcp_tools.clinvar import get_clinvar_record
+from .mcp_tools.ensembl import get_gene_consequence
+from .mcp_tools.gnomad import get_allele_frequency
 
 mcp = FastMCP("variant-audit")
 
@@ -26,6 +28,26 @@ def clinvar_lookup(variant: str) -> dict:
         variant: an rsID, e.g. "rs28897696".
     """
     return get_clinvar_record(variant)
+
+
+@mcp.tool()
+def gnomad_lookup(variant: str) -> dict:
+    """Look up a variant's population allele frequency in gnomAD.
+
+    Args:
+        variant: an rsID, e.g. "rs28897696".
+    """
+    return get_allele_frequency(variant)
+
+
+@mcp.tool()
+def ensembl_lookup(variant: str) -> dict:
+    """Look up a variant's molecular consequence and gene context via Ensembl VEP.
+
+    Args:
+        variant: an rsID, e.g. "rs28897696".
+    """
+    return get_gene_consequence(variant)
 
 
 if __name__ == "__main__":
