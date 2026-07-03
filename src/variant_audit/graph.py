@@ -28,6 +28,9 @@ from .classify import SYSTEM_PROMPT
 from .config import settings
 from . import llm
 from .mcp_tools.clinvar import get_clinvar_record
+from .mcp_tools.ensembl import get_gene_consequence
+from .mcp_tools.gnomad import get_allele_frequency
+from .mcp_tools.ucsc import get_genomic_context
 from .retrieval import semantic_search
 
 
@@ -44,9 +47,21 @@ class GraphState(TypedDict):
 # --- nodes (each takes GraphState, returns a partial state dict) ---
 
 def gather_evidence(state: GraphState) -> dict:
-    """Call the MCP tools for this variant and accumulate structured evidence."""
-    clinvar_record = get_clinvar_record(state["variant"])
-    return {"evidence": {"clinvar": clinvar_record}}
+    """Call the MCP tools for this variant and accumulate structured evidence.
+
+    Each tool degrades to a {"found": False} result for an unknown/malformed
+    variant rather than raising, so one missing source never blocks the others.
+    """
+    variant = state["variant"]
+    ensembl_record = get_gene_consequence(variant)
+    return {
+        "evidence": {
+            "clinvar": get_clinvar_record(variant),
+            "gnomad": get_allele_frequency(variant),
+            "ensembl": ensembl_record,
+            "ucsc": get_genomic_context(variant, consequence=ensembl_record),
+        }
+    }
 
 
 def retrieve_criteria(state: GraphState) -> dict:
