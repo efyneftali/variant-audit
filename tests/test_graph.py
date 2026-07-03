@@ -260,6 +260,69 @@ class TestClassify:
         assert "Uncertain Significance" in system
         assert "Benign" in system
 
+    def test_system_prompt_warns_against_treating_clinvar_as_the_answer(self, fake_stack):
+        # the whole point of gathering independent evidence is a non-circular eval --
+        # the model must not just parrot ClinVar's own asserted significance back
+        _, chunks, llm_calls = fake_stack
+        state = {"variant": "rs28897696", "evidence": {"clinvar": {"found": True, "matches": []}}, "criteria": chunks}
+        graph.classify(state)
+        assert "not the answer" in llm_calls["system"] or "not the final answer" in llm_calls["system"]
+
+    def test_prompt_includes_all_five_evidence_sections_with_real_data(self, fake_stack):
+        _, chunks, llm_calls = fake_stack
+        state = {
+            "variant": "rs28897696",
+            "evidence": {
+                "clinvar": {"found": True, "matches": []},
+                "gnomad": GNOMAD_RESULT,
+                "ensembl": ENSEMBL_RESULT,
+                "ucsc": UCSC_RESULT,
+                "alphamissense": ALPHAMISSENSE_RESULT,
+            },
+            "criteria": chunks,
+        }
+
+        graph.classify(state)
+        prompt = llm_calls["prompt"]
+
+        assert "== Population Frequency ==" in prompt
+        assert "5.257e-05" in prompt  # GNOMAD_RESULT's allele_freq, formatted
+        assert "== Consequence ==" in prompt
+        assert "frameshift_variant" in prompt and "BRCA1" in prompt
+        assert "== Conservation ==" in prompt
+        assert "1.46" in prompt  # UCSC_RESULT's phylop
+        assert "== Computational (AlphaMissense) ==" in prompt
+        assert "0.6381" in prompt and "likely_pathogenic" in prompt
+
+    def test_prompt_degrades_gracefully_when_the_other_four_sources_are_missing(self, fake_stack):
+        # a state with only clinvar populated (e.g. from before these tools existed)
+        # must not crash classify() -- each block falls back to a clear "no data" line
+        _, chunks, llm_calls = fake_stack
+        state = {"variant": "rs999", "evidence": {"clinvar": {"found": False, "matches": []}}, "criteria": chunks}
+
+        graph.classify(state)
+        prompt = llm_calls["prompt"]
+
+        assert "No gnomAD record for rs999" in prompt
+        assert "No Ensembl VEP consequence available for rs999" in prompt
+        assert "No conservation data available for rs999" in prompt
+        assert "Not applicable — AlphaMissense only scores missense substitutions." in prompt
+
+    def test_prompt_reports_alphamissense_not_applicable_for_non_missense(self, fake_stack):
+        _, chunks, llm_calls = fake_stack
+        state = {
+            "variant": "rs80357906",
+            "evidence": {
+                "clinvar": {"found": True, "matches": []},
+                "alphamissense": {"variant": "rs80357906", "found": False, "applicable": False},
+            },
+            "criteria": chunks,
+        }
+
+        graph.classify(state)
+
+        assert "Not applicable — AlphaMissense only scores missense substitutions." in llm_calls["prompt"]
+
 
 class TestBuildGraphAndAsk:
     def test_build_graph_compiles(self):
