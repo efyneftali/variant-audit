@@ -86,28 +86,80 @@ def grade_evidence(state: GraphState) -> dict:
     raise NotImplementedError("TODO(day-8): llm.complete(purpose='grade')")
 
 
+def _format_clinvar_evidence(clinvar: dict, variant: str) -> str:
+    matches = clinvar.get("matches", [])
+    if not matches:
+        return f"No ClinVar record found for {variant}."
+    return "\n\n".join(
+        f"HGVS: {m['hgvs']}\n"
+        f"ClinVar significance: {m['clinical_significance']}\n"
+        f"Review status: {m['review_status']}"
+        for m in matches
+    )
+
+
+def _format_gnomad_evidence(gnomad: dict, variant: str) -> str:
+    if not gnomad.get("found"):
+        return f"No gnomAD record for {variant} — not observed in population databases (supports rarity, e.g. PM2)."
+    freq = gnomad.get("allele_freq")
+    if freq is None:
+        return f"gnomAD record found for {variant}, but no allele frequency reported."
+    return f"Population allele frequency: {freq:.3e} (gnomAD; very rare supports PM2, common supports BA1/BS1)."
+
+
+def _format_ensembl_evidence(ensembl: dict, variant: str) -> str:
+    if not ensembl.get("found"):
+        return f"No Ensembl VEP consequence available for {variant}."
+    consequence = ensembl.get("most_severe_consequence") or "unknown"
+    impact = ensembl.get("impact") or "unknown"
+    gene = ensembl.get("gene_symbol") or "unknown gene"
+    return f"Molecular consequence: {consequence} (impact: {impact}) in {gene}."
+
+
+def _format_ucsc_evidence(ucsc: dict, variant: str) -> str:
+    if not ucsc.get("found"):
+        return f"No conservation data available for {variant}."
+    phylop = ucsc.get("phylop")
+    phastcons = ucsc.get("phastcons")
+    phylop_text = f"{phylop:.3g}" if phylop is not None else "n/a"
+    phastcons_text = f"{phastcons:.3g}" if phastcons is not None else "n/a"
+    return (
+        f"phyloP: {phylop_text} (higher = more conserved across species), "
+        f"phastCons: {phastcons_text} (near 1 = in a conserved element)."
+    )
+
+
+def _format_alphamissense_evidence(alphamissense: dict, variant: str) -> str:
+    if not alphamissense.get("applicable"):
+        return "Not applicable — AlphaMissense only scores missense substitutions."
+    if not alphamissense.get("found"):
+        return f"{variant} is missense, but not present in the precomputed AlphaMissense table."
+    score = alphamissense.get("am_pathogenicity")
+    am_class = alphamissense.get("am_class")
+    protein_variant = alphamissense.get("protein_variant")
+    return f"AlphaMissense score: {score:.4g} ({am_class}) for {protein_variant}."
+
+
 def classify(state: GraphState) -> dict:
     """Combine ACMG criteria into a classification with cited criteria."""
     variant = state["variant"]
-    matches = state["evidence"].get("clinvar", {}).get("matches", [])
+    evidence = state["evidence"]
     chunks = state["criteria"]
 
     criteria_text = "\n\n".join(f"[{c.source}]\n{c.text}" for c in chunks)
-
-    if matches:
-        evidence_lines = [
-            f"HGVS: {m['hgvs']}\n"
-            f"ClinVar significance: {m['clinical_significance']}\n"
-            f"Review status: {m['review_status']}"
-            for m in matches
-        ]
-        evidence_text = "\n\n".join(evidence_lines)
-    else:
-        evidence_text = f"No ClinVar record found for {variant}."
+    clinvar_text = _format_clinvar_evidence(evidence.get("clinvar", {}), variant)
+    gnomad_text = _format_gnomad_evidence(evidence.get("gnomad", {}), variant)
+    ensembl_text = _format_ensembl_evidence(evidence.get("ensembl", {}), variant)
+    ucsc_text = _format_ucsc_evidence(evidence.get("ucsc", {}), variant)
+    alphamissense_text = _format_alphamissense_evidence(evidence.get("alphamissense", {}), variant)
 
     prompt = (
         f"Variant: {variant}\n\n"
-        f"== ClinVar Evidence ==\n{evidence_text}\n\n"
+        f"== ClinVar Evidence ==\n{clinvar_text}\n\n"
+        f"== Population Frequency ==\n{gnomad_text}\n\n"
+        f"== Consequence ==\n{ensembl_text}\n\n"
+        f"== Conservation ==\n{ucsc_text}\n\n"
+        f"== Computational (AlphaMissense) ==\n{alphamissense_text}\n\n"
         f"== Relevant ACMG Criteria ==\n{criteria_text}\n\n"
         f"Classify this variant."
     )
