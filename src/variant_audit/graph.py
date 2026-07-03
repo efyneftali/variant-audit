@@ -27,6 +27,7 @@ from langgraph.graph import END, StateGraph
 from .classify import SYSTEM_PROMPT
 from .config import settings
 from . import llm
+from .mcp_tools.alphamissense import get_alphamissense_score
 from .mcp_tools.clinvar import get_clinvar_record
 from .mcp_tools.ensembl import get_gene_consequence
 from .mcp_tools.gnomad import get_allele_frequency
@@ -60,6 +61,7 @@ def gather_evidence(state: GraphState) -> dict:
             "gnomad": get_allele_frequency(variant),
             "ensembl": ensembl_record,
             "ucsc": get_genomic_context(variant, consequence=ensembl_record),
+            "alphamissense": get_alphamissense_score(variant, consequence=ensembl_record),
         }
     }
 

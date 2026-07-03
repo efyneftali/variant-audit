@@ -13,6 +13,7 @@ Inspect/test it with the MCP Inspector (needs Node.js):
 
 from mcp.server.fastmcp import FastMCP
 
+from .mcp_tools.alphamissense import get_alphamissense_score
 from .mcp_tools.clinvar import get_clinvar_record
 from .mcp_tools.ensembl import get_gene_consequence
 from .mcp_tools.gnomad import get_allele_frequency
@@ -59,6 +60,16 @@ def ucsc_lookup(variant: str) -> dict:
         variant: an rsID, e.g. "rs28897696".
     """
     return get_genomic_context(variant)
+
+
+@mcp.tool()
+def alphamissense_lookup(variant: str) -> dict:
+    """Look up a missense variant's AlphaMissense pathogenicity score (missense only).
+
+    Args:
+        variant: an rsID, e.g. "rs28897696".
+    """
+    return get_alphamissense_score(variant)
 
 
 if __name__ == "__main__":

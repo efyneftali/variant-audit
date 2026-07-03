@@ -46,6 +46,16 @@ UCSC_RESULT = {
     "end": 43057065,
 }
 
+ALPHAMISSENSE_RESULT = {
+    "variant": "rs28897696",
+    "found": True,
+    "applicable": True,
+    "am_pathogenicity": 0.6381,
+    "am_class": "likely_pathogenic",
+    "transcript_id": "ENST00000357654.8",
+    "protein_variant": "A1708V",
+}
+
 
 @pytest.fixture
 def fake_stack(monkeypatch):
@@ -61,6 +71,7 @@ def fake_stack(monkeypatch):
     monkeypatch.setattr(graph, "get_allele_frequency", lambda v: GNOMAD_RESULT)
     monkeypatch.setattr(graph, "get_gene_consequence", lambda v: ENSEMBL_RESULT)
     monkeypatch.setattr(graph, "get_genomic_context", lambda v, consequence=None: UCSC_RESULT)
+    monkeypatch.setattr(graph, "get_alphamissense_score", lambda v, consequence=None: ALPHAMISSENSE_RESULT)
 
     chunks = [
         SimpleNamespace(text="PVS1 applies to null variants.", source="acmg_criteria.md", score=0.9),
@@ -81,7 +92,7 @@ def fake_stack(monkeypatch):
 
 
 class TestGatherEvidence:
-    def test_accumulates_all_four_sources_under_their_keys(self, fake_stack):
+    def test_accumulates_all_five_sources_under_their_keys(self, fake_stack):
         clinvar_result, _, _ = fake_stack
         result = graph.gather_evidence({"variant": "rs28897696"})
         assert result == {
@@ -90,6 +101,7 @@ class TestGatherEvidence:
                 "gnomad": GNOMAD_RESULT,
                 "ensembl": ENSEMBL_RESULT,
                 "ucsc": UCSC_RESULT,
+                "alphamissense": ALPHAMISSENSE_RESULT,
             }
         }
 
@@ -99,6 +111,7 @@ class TestGatherEvidence:
         monkeypatch.setattr(graph, "get_allele_frequency", lambda v: {"found": False})
         monkeypatch.setattr(graph, "get_gene_consequence", lambda v: {"found": False})
         monkeypatch.setattr(graph, "get_genomic_context", lambda v, consequence=None: {"found": False})
+        monkeypatch.setattr(graph, "get_alphamissense_score", lambda v, consequence=None: {"found": False, "applicable": False})
         graph.gather_evidence({"variant": "rs999"})
         assert captured["variant"] == "rs999"
 
@@ -108,6 +121,7 @@ class TestGatherEvidence:
         monkeypatch.setattr(graph, "get_allele_frequency", lambda v: captured.update({"variant": v}) or {"found": False})
         monkeypatch.setattr(graph, "get_gene_consequence", lambda v: {"found": False})
         monkeypatch.setattr(graph, "get_genomic_context", lambda v, consequence=None: {"found": False})
+        monkeypatch.setattr(graph, "get_alphamissense_score", lambda v, consequence=None: {"found": False, "applicable": False})
         graph.gather_evidence({"variant": "rs999"})
         assert captured["variant"] == "rs999"
 
@@ -117,6 +131,7 @@ class TestGatherEvidence:
         monkeypatch.setattr(graph, "get_allele_frequency", lambda v: {"found": False})
         monkeypatch.setattr(graph, "get_gene_consequence", lambda v: captured.update({"variant": v}) or {"found": False})
         monkeypatch.setattr(graph, "get_genomic_context", lambda v, consequence=None: {"found": False})
+        monkeypatch.setattr(graph, "get_alphamissense_score", lambda v, consequence=None: {"found": False, "applicable": False})
         graph.gather_evidence({"variant": "rs999"})
         assert captured["variant"] == "rs999"
 
@@ -132,6 +147,25 @@ class TestGatherEvidence:
             "get_genomic_context",
             lambda v, consequence=None: captured.update({"consequence": consequence}) or {"found": False},
         )
+        monkeypatch.setattr(graph, "get_alphamissense_score", lambda v, consequence=None: {"found": False, "applicable": False})
+
+        graph.gather_evidence({"variant": "rs999"})
+
+        assert captured["consequence"] is ensembl_result
+
+    def test_reuses_ensembl_result_for_alphamissense_instead_of_refetching(self, monkeypatch):
+        # same efficiency win as UCSC -- avoid a second, slow VEP round-trip
+        ensembl_result = {"found": True, "most_severe_consequence": "missense_variant", "chrom": "17", "start": 1, "ref": "G", "alt": "A"}
+        captured = {}
+        monkeypatch.setattr(graph, "get_clinvar_record", lambda v: {"found": False})
+        monkeypatch.setattr(graph, "get_allele_frequency", lambda v: {"found": False})
+        monkeypatch.setattr(graph, "get_gene_consequence", lambda v: ensembl_result)
+        monkeypatch.setattr(graph, "get_genomic_context", lambda v, consequence=None: {"found": False})
+        monkeypatch.setattr(
+            graph,
+            "get_alphamissense_score",
+            lambda v, consequence=None: captured.update({"consequence": consequence}) or {"found": False, "applicable": False},
+        )
 
         graph.gather_evidence({"variant": "rs999"})
 
@@ -142,6 +176,7 @@ class TestGatherEvidence:
         monkeypatch.setattr(graph, "get_allele_frequency", lambda v: {"variant": v, "found": False})
         monkeypatch.setattr(graph, "get_gene_consequence", lambda v: {"variant": v, "found": False})
         monkeypatch.setattr(graph, "get_genomic_context", lambda v, consequence=None: {"variant": v, "found": False})
+        monkeypatch.setattr(graph, "get_alphamissense_score", lambda v, consequence=None: {"variant": v, "found": False, "applicable": False})
 
         result = graph.gather_evidence({"variant": "rs00000000000"})
 
@@ -149,6 +184,7 @@ class TestGatherEvidence:
         assert result["evidence"]["gnomad"]["found"] is False
         assert result["evidence"]["ensembl"]["found"] is False
         assert result["evidence"]["ucsc"]["found"] is False
+        assert result["evidence"]["alphamissense"]["found"] is False
 
 
 class TestRetrieveCriteria:
@@ -240,6 +276,7 @@ class TestBuildGraphAndAsk:
             "gnomad": GNOMAD_RESULT,
             "ensembl": ENSEMBL_RESULT,
             "ucsc": UCSC_RESULT,
+            "alphamissense": ALPHAMISSENSE_RESULT,
         }
         assert result["criteria"] == chunks
         assert result["classification"] == "Classification: Uncertain Significance\nCriteria used: none identified"
@@ -268,10 +305,11 @@ class TestParityWithClassifyVariant:
             monkeypatch.setattr(module, "semantic_search", lambda q: chunks)
             monkeypatch.setattr(module.llm, "complete", lambda *a, **kw: "Classification: Pathogenic\nCriteria used: PVS1")
 
-        # graph.gather_evidence also queries gnomAD/Ensembl/UCSC; classify_variant doesn't.
+        # graph.gather_evidence also queries gnomAD/Ensembl/UCSC/AlphaMissense; classify_variant doesn't.
         monkeypatch.setattr(graph, "get_allele_frequency", lambda v: {"found": False})
         monkeypatch.setattr(graph, "get_gene_consequence", lambda v: {"found": False})
         monkeypatch.setattr(graph, "get_genomic_context", lambda v, consequence=None: {"found": False})
+        monkeypatch.setattr(graph, "get_alphamissense_score", lambda v, consequence=None: {"found": False, "applicable": False})
 
         flat_result = classify.classify_variant("rs80357906")
         graph_result = graph.ask("rs80357906")

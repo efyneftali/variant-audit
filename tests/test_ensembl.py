@@ -55,12 +55,14 @@ class TestGetGeneConsequence:
                             "consequence_terms": ["frameshift_variant"],
                             "impact": "HIGH",
                             "gene_symbol": "WRONG",
+                            "variant_allele": "G",
                         },
                         {
                             "biotype": "protein_coding",
                             "consequence_terms": ["frameshift_variant"],
                             "impact": "HIGH",
                             "gene_symbol": "BRCA1",
+                            "variant_allele": "G",
                         },
                     ],
                 }
@@ -79,6 +81,8 @@ class TestGetGeneConsequence:
             "start": 43057066,
             "end": 43057065,
             "allele_string": "-/G",
+            "ref": "-",
+            "alt": "G",
         }
 
     def test_prefers_protein_coding_transcript_matching_most_severe(self, fake_requests_get):
@@ -127,6 +131,37 @@ class TestGetGeneConsequence:
         assert result["found"] is True
         assert result["gene_symbol"] is None
         assert result["impact"] is None
+
+    def test_ref_alt_derived_from_multiallelic_site_match_primary_transcript(self, fake_requests_get):
+        # rs28897696-style site: 3 possible alts, each with its own consequence;
+        # ref/alt must track whichever allele `_primary_transcript_consequence` picked.
+        fake_requests_get.return_value = _fake_response(
+            [
+                {
+                    "most_severe_consequence": "missense_variant",
+                    "allele_string": "G/A/C/T",
+                    "transcript_consequences": [
+                        {"biotype": "protein_coding", "consequence_terms": ["missense_variant"], "impact": "MODERATE", "gene_symbol": "BRCA1", "variant_allele": "A"},
+                        {"biotype": "protein_coding", "consequence_terms": ["missense_variant"], "impact": "MODERATE", "gene_symbol": "BRCA1", "variant_allele": "C"},
+                    ],
+                }
+            ]
+        )
+
+        result = ensembl.get_gene_consequence("rs28897696")
+
+        assert result["ref"] == "G"
+        assert result["alt"] == "A"  # first matching transcript_consequence, not just any allele
+
+    def test_ref_alt_are_none_when_allele_string_missing(self, fake_requests_get):
+        fake_requests_get.return_value = _fake_response(
+            [{"most_severe_consequence": "intergenic_variant", "transcript_consequences": []}]
+        )
+
+        result = ensembl.get_gene_consequence("rsTEST")
+
+        assert result["ref"] is None
+        assert result["alt"] is None
 
     def test_requests_json_content_type_for_correct_id(self, fake_requests_get):
         fake_requests_get.return_value = _fake_response(
