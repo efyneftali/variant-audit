@@ -7,7 +7,7 @@ Variant Audit takes a genetic variant, gathers evidence from live genomic databa
 
 The agent is the *system under test*; the harness is the point. Genomics is a deliberate choice of domain: ClinVar provides authoritative, verifiable ground truth, which is exactly what credible evaluation requires.
 
-![Overview](docs/img/variant_audit_overview.png)
+![Architecture — the eval harness (purple) wraps the agent (blue) as the system under test; the agent draws on the RAG rulebook and live MCP evidence (green/amber) and is graded against ClinVar ground truth.](docs/img/variant_audit_hero_architecture.png)
 
 ## How it works
 
@@ -17,9 +17,11 @@ Three components, each doing a distinct job:
 - **MCP tools — the live evidence.** Each genomic data source is a callable tool: ClinVar (known assertions), gnomAD (population frequency), UCSC (conservation/genomic context), AlphaMissense (computational pathogenicity, missense), Ensembl/VEP (consequence).
 - **State machine (LangGraph) — the reasoning workflow.** Evidence gathering, relevance grading, classification, and a groundedness check, connected by **bounded** correction loops that guarantee termination.
 
-The eval harness grades the agent against ClinVar: classification accuracy with harm-weighted error costs, retrieval recall, judge-scored faithfulness, and robustness under input perturbation — gated in CI on every prompt and model change.
+![The reasoning workflow — a LangGraph state machine. Bounded correction loops (dashed) return to gather more evidence or reclassify, and are max-iteration guarded so the graph always terminates.](docs/img/variant_audit_state_machine.png)
 
-![Architecture](docs/img/variant_audit_architecture.png)
+The eval harness grades the agent against ClinVar: classification accuracy with harm-weighted error costs, retrieval recall, judge-scored faithfulness, and robustness under input perturbation — gated in CI on every prompt and model change. It's built in four layers, each building on the one below.
+
+![The eval harness — four layers of rigor: a versioned, stratified golden dataset; a calibrated LLM-as-judge; statistical honesty across N runs; and CI release gates plus a production failure-mining loop.](docs/img/variant_audit_harness_layers.png)
 
 ## Requirements
 
