@@ -1,0 +1,50 @@
+<svg viewBox="0 0 760 520" xmlns="http://www.w3.org/2000/svg" role="img" font-family="'Tiempos Text', Georgia, 'Times New Roman', serif">
+  <title>The eval harness — four layers of evaluation rigor</title>
+  <desc>Four stacked layers, foundation to top: dataset engineering, judge calibration, statistical rigor, CI and production loop. Each builds on the one below it.</desc>
+  <defs>
+    <style>
+      .sans { font-family: 'Styrene B','Inter',system-ui,sans-serif; }
+      .kick { font-family: 'Styrene B','Inter',system-ui,sans-serif; letter-spacing:1.5px; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="760" height="520" rx="14" fill="#F0EEE6"/>
+
+  <text x="48" y="54" class="kick" font-size="11" fill="#8A6F98">THE HARNESS</text>
+  <text x="48" y="88" font-size="28" fill="#1F1E1D">Four layers of eval rigor</text>
+  <text x="48" y="114" class="sans" font-size="14" fill="#83786B">Each layer builds on the one below it.</text>
+
+  <!-- build-order rail -->
+  <line x1="34" y1="158" x2="34" y2="460" stroke="#C9BDD3" stroke-width="1.5"/>
+  <polygon points="34,148 30,160 38,160" fill="#8A6F98"/>
+  <text x="22" y="308" class="sans" font-size="10.5" fill="#8A6F98" text-anchor="middle" letter-spacing="1.5" transform="rotate(-90 22 308)">BUILD ORDER</text>
+
+  <!-- layer 4 (top) -->
+  <rect x="48" y="150" width="664" height="72" rx="12" fill="#FAF9F5" stroke="#E2D9E7" stroke-width="1.5"/>
+  <circle cx="86" cy="186" r="17" fill="#8A6F98"/>
+  <text x="86" y="191" class="sans" font-size="15" font-weight="600" fill="#FAF9F5" text-anchor="middle">4</text>
+  <text x="122" y="180" font-size="18" fill="#1F1E1D">CI + production loop</text>
+  <text x="122" y="201" class="sans" font-size="12.5" fill="#6a6255">Evals gate every PR · nightly cron alerts on regression</text>
+
+  <!-- layer 3 -->
+  <rect x="48" y="230" width="664" height="72" rx="12" fill="#FAF9F5" stroke="#E2D9E7" stroke-width="1.5"/>
+  <circle cx="86" cy="266" r="17" fill="#8A6F98"/>
+  <text x="86" y="271" class="sans" font-size="15" font-weight="600" fill="#FAF9F5" text-anchor="middle">3</text>
+  <text x="122" y="260" font-size="18" fill="#1F1E1D">Statistical rigor</text>
+  <text x="122" y="281" class="sans" font-size="12.5" fill="#6a6255">N runs · reported variance · honest A/B comparison</text>
+
+  <!-- layer 2 -->
+  <rect x="48" y="310" width="664" height="72" rx="12" fill="#FAF9F5" stroke="#E2D9E7" stroke-width="1.5"/>
+  <circle cx="86" cy="346" r="17" fill="#8A6F98"/>
+  <text x="86" y="351" class="sans" font-size="15" font-weight="600" fill="#FAF9F5" text-anchor="middle">2</text>
+  <text x="122" y="340" font-size="18" fill="#1F1E1D">Judge calibration</text>
+  <text x="122" y="361" class="sans" font-size="12.5" fill="#6a6255">LLM-as-judge measured against hand-labels (Cohen's κ)</text>
+
+  <!-- layer 1 (foundation) -->
+  <rect x="48" y="390" width="664" height="72" rx="12" fill="#FAF9F5" stroke="#8A6F98" stroke-width="1.5"/>
+  <circle cx="86" cy="426" r="17" fill="#8A6F98"/>
+  <text x="86" y="431" class="sans" font-size="15" font-weight="600" fill="#FAF9F5" text-anchor="middle">1</text>
+  <text x="122" y="420" font-size="18" fill="#1F1E1D">Dataset engineering</text>
+  <text x="122" y="441" class="sans" font-size="12.5" fill="#6a6255">Versioned, stratified golden set + adversarial / abstention cases</text>
+  <text x="700" y="426" class="kick" font-size="10" fill="#8A6F98" text-anchor="end">FOUNDATION</text>
+</svg>

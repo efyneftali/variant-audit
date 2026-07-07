@@ -1,0 +1,81 @@
+<svg viewBox="0 0 900 460" xmlns="http://www.w3.org/2000/svg" role="img" font-family="'Tiempos Text', Georgia, 'Times New Roman', serif">
+  <title>llm.py — the provider-agnostic LLM call (Day 1 current state)</title>
+  <desc>A caller invokes complete(), the single entry point in llm.py. complete() resolves a model via _model_for() (which reads config.py) and dispatches to _complete_ollama() or _complete_anthropic(), which call the local Ollama server or the Anthropic API.</desc>
+  <defs>
+    <style>
+      .sans { font-family: 'Styrene B','Inter',system-ui,sans-serif; }
+      .kick { font-family: 'Styrene B','Inter',system-ui,sans-serif; letter-spacing:1.5px; }
+    </style>
+    <marker id="c" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#B08768"/></marker>
+    <marker id="cg" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#9a8f7d"/></marker>
+  </defs>
+
+  <rect x="0" y="0" width="900" height="460" rx="14" fill="#F0EEE6"/>
+
+  <text x="40" y="36" class="kick" font-size="11" fill="#CC785C">MODULE — CURRENT STATE (DAY 1)</text>
+  <text x="40" y="64" font-size="21" fill="#1F1E1D">llm.py — one provider-agnostic entry point.</text>
+
+  <!-- caller -->
+  <rect x="36" y="182" width="150" height="58" rx="10" fill="#EDEDE7" stroke="#9a9284" stroke-width="1.5"/>
+  <text x="111" y="207" class="sans" font-size="12.5" fill="#3d3833" text-anchor="middle">Caller</text>
+  <text x="111" y="224" class="sans" font-size="10.5" fill="#6a6255" text-anchor="middle">scratch.py / graph nodes</text>
+
+  <!-- llm.py container -->
+  <rect x="212" y="128" width="430" height="200" rx="16" fill="#F6F1EA" stroke="#E0D6C6" stroke-width="1.5"/>
+  <text x="226" y="150" class="kick" font-size="11" fill="#B08768">LLM.PY</text>
+
+  <!-- complete (entry) -->
+  <rect x="230" y="158" width="180" height="64" rx="11" fill="#FBF3EE" stroke="#CC785C" stroke-width="1.8"/>
+  <text x="320" y="184" font-size="14" fill="#7a4a30" text-anchor="middle">complete(…)</text>
+  <text x="320" y="203" class="sans" font-size="10.5" fill="#9a6a4e" text-anchor="middle">single entry point</text>
+
+  <rect x="230" y="250" width="180" height="52" rx="11" fill="#FAF9F5" stroke="#C2A98F" stroke-width="1.5"/>
+  <text x="320" y="272" font-size="13" fill="#5a4636" text-anchor="middle">_model_for(purpose)</text>
+  <text x="320" y="289" class="sans" font-size="10" fill="#8a7a66" text-anchor="middle">resolve main vs judge model</text>
+
+  <rect x="444" y="158" width="180" height="52" rx="11" fill="#FAF9F5" stroke="#C2A98F" stroke-width="1.5"/>
+  <text x="534" y="188" font-size="13" fill="#5a4636" text-anchor="middle">_complete_ollama(…)</text>
+
+  <rect x="444" y="250" width="180" height="52" rx="11" fill="#FAF9F5" stroke="#C2A98F" stroke-width="1.5"/>
+  <text x="534" y="280" font-size="13" fill="#5a4636" text-anchor="middle">_complete_anthropic(…)</text>
+
+  <!-- config -->
+  <rect x="230" y="356" width="180" height="54" rx="10" fill="#EDEDE7" stroke="#9a9284" stroke-width="1.5"/>
+  <text x="320" y="380" class="sans" font-size="12.5" fill="#3d3833" text-anchor="middle">config.py</text>
+  <text x="320" y="397" class="sans" font-size="10.5" fill="#6a6255" text-anchor="middle">Settings · provider + models</text>
+
+  <!-- external providers -->
+  <rect x="690" y="158" width="180" height="52" rx="11" fill="#EDEDE7" stroke="#9a9284" stroke-width="1.5"/>
+  <text x="780" y="182" class="sans" font-size="12.5" fill="#3d3833" text-anchor="middle">Ollama server</text>
+  <text x="780" y="198" class="sans" font-size="10" fill="#6a6255" text-anchor="middle">local · free</text>
+
+  <rect x="690" y="250" width="180" height="52" rx="11" fill="#EDEDE7" stroke="#9a9284" stroke-width="1.5"/>
+  <text x="780" y="274" class="sans" font-size="12.5" fill="#3d3833" text-anchor="middle">Anthropic API</text>
+  <text x="780" y="290" class="sans" font-size="10" fill="#6a6255" text-anchor="middle">Claude</text>
+
+  <!-- arrows -->
+  <path d="M186,211 L208,211 L208,190 L228,190" fill="none" stroke="#B08768" stroke-width="1.6" marker-end="url(#c)"/>
+  <text x="205" y="176" class="sans" font-size="10" fill="#B08768" text-anchor="middle">prompt + purpose</text>
+
+  <line x1="320" y1="222" x2="320" y2="248" stroke="#B08768" stroke-width="1.6" marker-end="url(#c)"/>
+  <text x="392" y="240" class="sans" font-size="9.5" fill="#B08768" text-anchor="middle">resolve model</text>
+
+  <path d="M320,302 L320,354" fill="none" stroke="#9a8f7d" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#cg)"/>
+  <text x="360" y="332" class="sans" font-size="9.5" fill="#9a8f7d" text-anchor="middle">settings</text>
+
+  <line x1="410" y1="184" x2="442" y2="184" stroke="#B08768" stroke-width="1.6" marker-end="url(#c)"/>
+  <text x="426" y="174" class="sans" font-size="9.5" fill="#B08768" text-anchor="middle">if ollama</text>
+
+  <path d="M410,210 L427,210 L427,276 L442,276" fill="none" stroke="#B08768" stroke-width="1.6" marker-end="url(#c)"/>
+  <text x="447" y="238" class="sans" font-size="9.5" fill="#B08768" text-anchor="start">if anthropic</text>
+
+  <line x1="624" y1="184" x2="688" y2="184" stroke="#B08768" stroke-width="1.6" marker-end="url(#c)"/>
+  <text x="656" y="174" class="sans" font-size="9.5" fill="#B08768" text-anchor="middle">ollama.chat()</text>
+
+  <line x1="624" y1="276" x2="688" y2="276" stroke="#B08768" stroke-width="1.6" marker-end="url(#c)"/>
+  <text x="656" y="266" class="sans" font-size="9.5" fill="#B08768" text-anchor="middle">messages.create()</text>
+
+  <!-- captions -->
+  <text x="40" y="434" class="sans" font-size="11" fill="#6a6255">Single entry point — every LLM call routes through complete(); switching providers is one env var (LLM_PROVIDER).</text>
+  <text x="40" y="450" class="sans" font-size="11" fill="#6a6255">_model_for: purpose ∈ {grade, groundedness, eval_judge} → cheaper judge model; otherwise the main model.</text>
+</svg>
