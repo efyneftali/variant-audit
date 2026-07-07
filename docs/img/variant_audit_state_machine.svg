@@ -1,0 +1,65 @@
+<svg viewBox="0 0 900 410" xmlns="http://www.w3.org/2000/svg" role="img" font-family="'Tiempos Text', Georgia, 'Times New Roman', serif">
+  <title>Variant Audit reasoning workflow — a LangGraph state machine with bounded correction loops</title>
+  <desc>Left to right: variant in, gather evidence, grade sufficiency, classify, check grounded, return. Two dashed bounded loops: insufficient evidence returns to gather; ungrounded output returns to classify.</desc>
+  <defs>
+    <style>
+      .sans { font-family: 'Styrene B','Inter',system-ui,sans-serif; }
+      .kick { font-family: 'Styrene B','Inter',system-ui,sans-serif; letter-spacing:1.5px; }
+    </style>
+    <marker id="b" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#4F7396"/></marker>
+  </defs>
+
+  <rect x="0" y="0" width="900" height="410" rx="14" fill="#F0EEE6"/>
+
+  <text x="40" y="38" class="kick" font-size="11" fill="#CC785C">THE REASONING WORKFLOW</text>
+  <text x="40" y="66" font-size="21" fill="#1F1E1D">A LangGraph state machine — bounded loops guarantee termination.</text>
+
+  <!-- loop A: insufficient -> gather (above) -->
+  <path d="M351,180 C351,138 300,132 266,132 C232,132 181,138 181,180" fill="none" stroke="#4F7396" stroke-width="1.3" stroke-dasharray="5 4" marker-end="url(#b)"/>
+  <text x="266" y="124" class="sans" font-size="10.5" fill="#4F7396" text-anchor="middle">insufficient → gather more · bounded</text>
+
+  <!-- nodes -->
+  <g>
+    <rect x="32" y="192" width="64" height="40" rx="20" fill="#EDEDE7" stroke="#9a9284" stroke-width="1.5"/>
+    <text x="64" y="216" class="sans" font-size="11" fill="#4a4438" text-anchor="middle">variant</text>
+  </g>
+  <g text-anchor="middle">
+    <rect x="112" y="180" width="138" height="64" rx="12" fill="#E4EBF1" stroke="#4F7396" stroke-width="1.5"/>
+    <text x="181" y="208" font-size="14" fill="#2E4A63">Gather evidence</text>
+    <text x="181" y="227" class="sans" font-size="10.5" fill="#5a7085">calls MCP tools</text>
+
+    <rect x="282" y="180" width="138" height="64" rx="12" fill="#E4EBF1" stroke="#4F7396" stroke-width="1.5"/>
+    <text x="351" y="208" font-size="14" fill="#2E4A63">Grade sufficiency</text>
+    <text x="351" y="227" class="sans" font-size="10.5" fill="#5a7085">enough evidence?</text>
+
+    <rect x="452" y="180" width="120" height="64" rx="12" fill="#E4EBF1" stroke="#4F7396" stroke-width="1.5"/>
+    <text x="512" y="208" font-size="14" fill="#2E4A63">Classify</text>
+    <text x="512" y="227" class="sans" font-size="10.5" fill="#5a7085">→ P · VUS · B</text>
+
+    <rect x="604" y="180" width="138" height="64" rx="12" fill="#E4EBF1" stroke="#4F7396" stroke-width="1.5"/>
+    <text x="673" y="208" font-size="14" fill="#2E4A63">Check grounded</text>
+    <text x="673" y="227" class="sans" font-size="10.5" fill="#5a7085">justification cited?</text>
+
+    <rect x="774" y="192" width="94" height="40" rx="20" fill="#E4EBF1" stroke="#4F7396" stroke-width="1.5"/>
+    <text x="821" y="216" class="sans" font-size="11" fill="#2E4A63">return</text>
+  </g>
+
+  <!-- forward arrows -->
+  <g stroke="#4F7396" stroke-width="1.6" marker-end="url(#b)">
+    <line x1="96" y1="212" x2="110" y2="212"/>
+    <line x1="250" y1="212" x2="280" y2="212"/>
+    <line x1="420" y1="212" x2="450" y2="212"/>
+    <line x1="572" y1="212" x2="602" y2="212"/>
+    <line x1="742" y1="212" x2="772" y2="212"/>
+  </g>
+  <text x="435" y="204" class="sans" font-size="10" fill="#4F7396" text-anchor="middle">sufficient</text>
+  <text x="757" y="204" class="sans" font-size="10" fill="#4F7396" text-anchor="middle">grounded</text>
+
+  <!-- loop B: not grounded -> classify (below) -->
+  <path d="M673,244 C673,288 600,292 592,292 C560,292 512,288 512,244" fill="none" stroke="#4F7396" stroke-width="1.3" stroke-dasharray="5 4" marker-end="url(#b)"/>
+  <text x="592" y="308" class="sans" font-size="10.5" fill="#4F7396" text-anchor="middle">not grounded → reclassify · bounded</text>
+
+  <!-- caption -->
+  <line x1="40" y1="356" x2="70" y2="356" stroke="#4F7396" stroke-width="1.3" stroke-dasharray="5 4"/>
+  <text x="80" y="360" class="sans" font-size="11" fill="#6a6255">Dashed = bounded correction loop (max-iteration guarded, so the graph always terminates).</text>
+</svg>

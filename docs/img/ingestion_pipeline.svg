@@ -1,0 +1,101 @@
+<svg viewBox="0 0 940 520" xmlns="http://www.w3.org/2000/svg" role="img" font-family="'Tiempos Text', Georgia, 'Times New Roman', serif">
+  <title>Ingestion and retrieval — the RAG subsystem (Day 2 current state)</title>
+  <desc>Top lane: ingest_directory chunks each file with chunk_text, embeds chunks via embeddings.py, and upserts to Qdrant. Bottom lane: semantic_search embeds the query, queries Qdrant, and returns a list of RetrievedChunk to the caller. config.py supplies settings to both.</desc>
+  <defs>
+    <style>
+      .sans { font-family: 'Styrene B','Inter',system-ui,sans-serif; }
+      .kick { font-family: 'Styrene B','Inter',system-ui,sans-serif; letter-spacing:1.5px; }
+    </style>
+    <marker id="g" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#6E8B62"/></marker>
+    <marker id="gg" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#9a8f7d"/></marker>
+  </defs>
+
+  <rect x="0" y="0" width="940" height="520" rx="14" fill="#F0EEE6"/>
+
+  <text x="40" y="36" class="kick" font-size="11" fill="#6E8B62">RAG SUBSYSTEM — CURRENT STATE (DAY 2)</text>
+  <text x="40" y="64" font-size="21" fill="#1F1E1D">Ingestion &amp; retrieval — chunk, embed, store, search.</text>
+
+  <!-- callers -->
+  <rect x="24" y="150" width="134" height="50" rx="10" fill="#EDEDE7" stroke="#9a9284" stroke-width="1.5"/>
+  <text x="91" y="171" class="sans" font-size="11.5" fill="#3d3833" text-anchor="middle">ingest caller</text>
+  <text x="91" y="187" class="sans" font-size="9.5" fill="#6a6255" text-anchor="middle">ingest_directory()</text>
+
+  <rect x="24" y="335" width="134" height="50" rx="10" fill="#EDEDE7" stroke="#9a9284" stroke-width="1.5"/>
+  <text x="91" y="356" class="sans" font-size="11.5" fill="#3d3833" text-anchor="middle">search caller</text>
+  <text x="91" y="372" class="sans" font-size="9.5" fill="#6a6255" text-anchor="middle">graph node</text>
+
+  <!-- config -->
+  <rect x="182" y="250" width="140" height="48" rx="10" fill="#EDEDE7" stroke="#9a9284" stroke-width="1.5"/>
+  <text x="252" y="271" class="sans" font-size="12" fill="#3d3833" text-anchor="middle">config.py</text>
+  <text x="252" y="287" class="sans" font-size="10" fill="#6a6255" text-anchor="middle">Settings</text>
+
+  <!-- ingestion.py boxes -->
+  <rect x="182" y="148" width="140" height="54" rx="11" fill="#FAF9F5" stroke="#6E8B62" stroke-width="1.6"/>
+  <text x="252" y="172" font-size="13" fill="#3d5233" text-anchor="middle">ingest_directory</text>
+  <text x="252" y="189" class="sans" font-size="9.5" fill="#5f7554" text-anchor="middle">ingestion.py</text>
+
+  <rect x="352" y="148" width="118" height="54" rx="11" fill="#FAF9F5" stroke="#6E8B62" stroke-width="1.6"/>
+  <text x="411" y="172" font-size="13" fill="#3d5233" text-anchor="middle">chunk_text</text>
+  <text x="411" y="189" class="sans" font-size="9.5" fill="#5f7554" text-anchor="middle">sliding window</text>
+
+  <!-- retrieval.py -->
+  <rect x="182" y="333" width="140" height="54" rx="11" fill="#FAF9F5" stroke="#6E8B62" stroke-width="1.6"/>
+  <text x="252" y="357" font-size="13" fill="#3d5233" text-anchor="middle">semantic_search</text>
+  <text x="252" y="374" class="sans" font-size="9.5" fill="#5f7554" text-anchor="middle">retrieval.py</text>
+
+  <!-- embeddings.py container -->
+  <rect x="498" y="134" width="156" height="292" rx="14" fill="#EEF3EA" stroke="#C4D2BB" stroke-width="1.5"/>
+  <text x="512" y="153" class="kick" font-size="10.5" fill="#6E8B62">EMBEDDINGS.PY</text>
+
+  <rect x="514" y="160" width="126" height="50" rx="10" fill="#FAF9F5" stroke="#6E8B62" stroke-width="1.6"/>
+  <text x="577" y="190" font-size="12.5" fill="#3d5233" text-anchor="middle">embed_texts</text>
+
+  <rect x="514" y="252" width="126" height="48" rx="10" fill="#FAF9F5" stroke="#B9C3B0" stroke-width="1.5"/>
+  <text x="577" y="274" font-size="12" fill="#4a5842" text-anchor="middle">_model</text>
+  <text x="577" y="290" class="sans" font-size="9" fill="#6f7d66" text-anchor="middle">cached SentenceTransformer</text>
+
+  <rect x="514" y="336" width="126" height="50" rx="10" fill="#FAF9F5" stroke="#6E8B62" stroke-width="1.6"/>
+  <text x="577" y="366" font-size="12.5" fill="#3d5233" text-anchor="middle">embed_query</text>
+
+  <!-- Qdrant -->
+  <rect x="730" y="222" width="150" height="110" rx="12" fill="#EDEDE7" stroke="#9a9284" stroke-width="1.6"/>
+  <text x="805" y="272" class="sans" font-size="13" fill="#3d3833" text-anchor="middle">Qdrant</text>
+  <text x="805" y="290" class="sans" font-size="10" fill="#6a6255" text-anchor="middle">vector store</text>
+
+  <!-- RetrievedChunk -->
+  <rect x="498" y="452" width="210" height="48" rx="10" fill="#FAF9F5" stroke="#6E8B62" stroke-width="1.5"/>
+  <text x="603" y="473" font-size="12.5" fill="#3d5233" text-anchor="middle">RetrievedChunk</text>
+  <text x="603" y="489" class="sans" font-size="9.5" fill="#5f7554" text-anchor="middle">text · source · score</text>
+
+  <!-- INGEST flow -->
+  <line x1="158" y1="175" x2="180" y2="175" stroke="#6E8B62" stroke-width="1.6" marker-end="url(#g)"/>
+  <line x1="322" y1="175" x2="350" y2="175" stroke="#6E8B62" stroke-width="1.6" marker-end="url(#g)"/>
+  <text x="336" y="167" class="sans" font-size="9" fill="#6E8B62" text-anchor="middle">per file</text>
+  <line x1="470" y1="175" x2="512" y2="175" stroke="#6E8B62" stroke-width="1.6" marker-end="url(#g)"/>
+  <text x="491" y="167" class="sans" font-size="9" fill="#6E8B62" text-anchor="middle">chunks</text>
+  <path d="M640,175 L690,175 L690,250 L728,250" fill="none" stroke="#6E8B62" stroke-width="1.6" marker-end="url(#g)"/>
+  <text x="690" y="167" class="sans" font-size="9" fill="#6E8B62" text-anchor="middle">upsert</text>
+
+  <!-- embeddings internal -->
+  <line x1="577" y1="210" x2="577" y2="250" stroke="#6E8B62" stroke-width="1.5" marker-end="url(#g)"/>
+  <text x="606" y="235" class="sans" font-size="8.5" fill="#6E8B62" text-anchor="middle">encode()</text>
+  <path d="M514,360 L506,360 L506,168 L512,168" fill="none" stroke="#9a8f7d" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#gg)"/>
+
+  <!-- RETRIEVE flow -->
+  <line x1="158" y1="360" x2="180" y2="360" stroke="#6E8B62" stroke-width="1.6" marker-end="url(#g)"/>
+  <line x1="322" y1="360" x2="512" y2="360" stroke="#6E8B62" stroke-width="1.6" marker-end="url(#g)"/>
+  <text x="417" y="352" class="sans" font-size="9" fill="#6E8B62" text-anchor="middle">embed query</text>
+  <path d="M640,360 L690,360 L690,305 L728,305" fill="none" stroke="#6E8B62" stroke-width="1.6" marker-end="url(#g)"/>
+  <text x="690" y="352" class="sans" font-size="9" fill="#6E8B62" text-anchor="middle">query_points</text>
+
+  <!-- Qdrant -> RetrievedChunk -> caller -->
+  <path d="M805,332 L805,476 L710,476" fill="none" stroke="#6E8B62" stroke-width="1.6" marker-end="url(#g)"/>
+  <text x="815" y="420" class="sans" font-size="9" fill="#6E8B62" text-anchor="start">results</text>
+  <path d="M498,476 L96,476 L96,387" fill="none" stroke="#6E8B62" stroke-width="1.6" marker-end="url(#g)"/>
+  <text x="300" y="468" class="sans" font-size="9.5" fill="#6E8B62" text-anchor="middle">list[RetrievedChunk] → caller</text>
+
+  <!-- config dashed -->
+  <path d="M252,250 L252,204" fill="none" stroke="#9a8f7d" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#gg)"/>
+  <path d="M252,298 L252,331" fill="none" stroke="#9a8f7d" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#gg)"/>
+  <text x="300" y="277" class="sans" font-size="9" fill="#9a8f7d" text-anchor="start">settings</text>
+</svg>
