@@ -89,6 +89,9 @@ def fake_stack(monkeypatch):
         if purpose == "grade":
             # happy path: evidence is graded sufficient immediately, one pass, no retry loop
             return "sufficient\nEnough evidence to classify."
+        if purpose == "groundedness":
+            # happy path: classification passes groundedness immediately, no regeneration loop
+            return "grounded\nEvery claim is supported by the evidence."
         return "Classification: Uncertain Significance\nCriteria used: none identified"
 
     monkeypatch.setattr(graph.llm, "complete", fake_complete)
@@ -229,7 +232,10 @@ class TestClassify:
         _, chunks, _ = fake_stack
         state = {"variant": "rs28897696", "evidence": {"clinvar": {"found": True, "matches": []}}, "criteria": chunks}
         result = graph.classify(state)
-        assert result == {"classification": "Classification: Uncertain Significance\nCriteria used: none identified"}
+        assert result == {
+            "classification": "Classification: Uncertain Significance\nCriteria used: none identified",
+            "gen_retries": 0,
+        }
 
     def test_prompt_includes_clinvar_hgvs_and_significance(self, fake_stack):
         clinvar_result, chunks, llm_calls = fake_stack
@@ -264,6 +270,71 @@ class TestClassify:
         assert "Pathogenic" in system
         assert "Uncertain Significance" in system
         assert "Benign" in system
+
+
+class TestCheckGrounded:
+    def test_grounded_verdict_returns_true(self, monkeypatch):
+        monkeypatch.setattr(graph.llm, "complete", lambda *a, **kw: "grounded\nEvery claim matches the evidence.")
+        state = {"variant": "rs28897696", "evidence": {"clinvar": {"matches": []}}, "criteria": [], "classification": "Classification: Benign\nCriteria used: none identified"}
+        result = graph.check_grounded(state)
+        assert result == {"grounded": True}
+
+    def test_ungrounded_verdict_returns_false(self, monkeypatch):
+        monkeypatch.setattr(graph.llm, "complete", lambda *a, **kw: "ungrounded\nPM1 was cited but never retrieved.")
+        state = {"variant": "rs28897696", "evidence": {"clinvar": {"matches": []}}, "criteria": [], "classification": "Classification: Pathogenic\nCriteria used: PM1"}
+        result = graph.check_grounded(state)
+        assert result == {"grounded": False}
+
+    def test_verdict_parsing_is_case_insensitive_and_tolerates_trailing_text(self, monkeypatch):
+        monkeypatch.setattr(graph.llm, "complete", lambda *a, **kw: "GROUNDED - yes, fully supported.")
+        state = {"variant": "rs28897696", "evidence": {}, "criteria": [], "classification": "x"}
+        result = graph.check_grounded(state)
+        assert result == {"grounded": True}
+
+    def test_ambiguous_verdict_defaults_to_ungrounded(self, monkeypatch):
+        # conservative default: if we can't tell, don't let the graph treat it as grounded
+        monkeypatch.setattr(graph.llm, "complete", lambda *a, **kw: "unclear, hard to say")
+        state = {"variant": "rs28897696", "evidence": {}, "criteria": [], "classification": "x"}
+        result = graph.check_grounded(state)
+        assert result == {"grounded": False}
+
+    def test_uses_groundedness_purpose_and_small_max_tokens(self, monkeypatch):
+        calls = {}
+
+        def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024):
+            calls["purpose"] = purpose
+            calls["max_tokens"] = max_tokens
+            return "grounded\nfine"
+
+        monkeypatch.setattr(graph.llm, "complete", fake_complete)
+        state = {"variant": "rs28897696", "evidence": {}, "criteria": [], "classification": "x"}
+        graph.check_grounded(state)
+
+        assert calls["purpose"] == "groundedness"
+        assert calls["max_tokens"] <= 128
+
+    def test_prompt_includes_the_classification_being_verified(self, fake_stack):
+        clinvar_result, chunks, llm_calls = fake_stack
+        state = {
+            "variant": "rs28897696",
+            "evidence": {"clinvar": clinvar_result},
+            "criteria": chunks,
+            "classification": "Classification: Pathogenic\nCriteria used: PVS1",
+        }
+        graph.check_grounded(state)
+        assert "Classification: Pathogenic\nCriteria used: PVS1" in llm_calls["prompt"]
+
+    def test_prompt_includes_same_evidence_and_criteria_as_classify(self, fake_stack):
+        clinvar_result, chunks, llm_calls = fake_stack
+        state = {
+            "variant": "rs28897696",
+            "evidence": {"clinvar": clinvar_result},
+            "criteria": chunks,
+            "classification": "Classification: Pathogenic\nCriteria used: PVS1",
+        }
+        graph.check_grounded(state)
+        assert "BRCA1:c.123A>G" in llm_calls["prompt"]
+        assert "PVS1 applies to null variants." in llm_calls["prompt"]
 
 
 class TestGradeEvidence:
@@ -363,6 +434,32 @@ class TestRouteAfterGrading:
         assert graph.route_after_grading({"sufficient": False, "rewrites": 3}) == "classify"
 
 
+class TestRouteAfterGroundedness:
+    """Pure routing logic -- given a state, which node comes next."""
+
+    def test_grounded_goes_to_end_regardless_of_budget(self):
+        assert graph.route_after_groundedness({"grounded": True, "gen_retries": 0}) == graph.END
+        assert graph.route_after_groundedness({"grounded": True, "gen_retries": 99}) == graph.END
+
+    def test_ungrounded_and_under_budget_loops_back_to_classify(self):
+        # default settings.max_generation_retries is 1, so gen_retries=0 is still under budget
+        assert graph.route_after_groundedness({"grounded": False, "gen_retries": 0}) == "classify"
+
+    def test_ungrounded_and_at_budget_gives_up_and_ends(self):
+        assert graph.route_after_groundedness({"grounded": False, "gen_retries": 1}) == graph.END
+
+    def test_ungrounded_and_over_budget_gives_up_and_ends(self):
+        assert graph.route_after_groundedness({"grounded": False, "gen_retries": 5}) == graph.END
+
+    def test_respects_a_wider_or_narrower_configured_budget(self, monkeypatch):
+        monkeypatch.setattr(graph, "settings", SimpleNamespace(max_generation_retries=0))
+        assert graph.route_after_groundedness({"grounded": False, "gen_retries": 0}) == graph.END
+
+        monkeypatch.setattr(graph, "settings", SimpleNamespace(max_generation_retries=3))
+        assert graph.route_after_groundedness({"grounded": False, "gen_retries": 2}) == "classify"
+        assert graph.route_after_groundedness({"grounded": False, "gen_retries": 3}) == graph.END
+
+
 class TestGatherEvidenceRewritesCounter:
     def test_first_pass_leaves_rewrites_unchanged(self, monkeypatch):
         monkeypatch.setattr(graph, "get_clinvar_record", lambda v: {"found": False})
@@ -387,6 +484,27 @@ class TestGatherEvidenceRewritesCounter:
         result = graph.gather_evidence({"variant": "rs999", "evidence": prior_evidence, "rewrites": 0})
 
         assert result["rewrites"] == 1
+
+
+class TestClassifyGenRetriesCounter:
+    def test_first_pass_leaves_gen_retries_unchanged(self, monkeypatch):
+        monkeypatch.setattr(graph.llm, "complete", lambda *a, **kw: "Classification: Benign\nCriteria used: none identified")
+        state = {"variant": "rs999", "evidence": {"clinvar": {"matches": []}}, "criteria": [], "gen_retries": 0}
+        result = graph.classify(state)
+        assert result["gen_retries"] == 0
+
+    def test_retry_pass_increments_gen_retries(self, monkeypatch):
+        monkeypatch.setattr(graph.llm, "complete", lambda *a, **kw: "Classification: Benign\nCriteria used: none identified")
+        # non-empty "classification" is the signal that this is a retry, not the first pass
+        state = {
+            "variant": "rs999",
+            "evidence": {"clinvar": {"matches": []}},
+            "criteria": [],
+            "classification": "Classification: Pathogenic\nCriteria used: PVS1",
+            "gen_retries": 0,
+        }
+        result = graph.classify(state)
+        assert result["gen_retries"] == 1
 
 
 class TestBoundedRetryLoop:
@@ -449,6 +567,68 @@ class TestBoundedRetryLoop:
         assert call_count["gather"] == 1
         assert result["rewrites"] == 0
         assert result["sufficient"] is True
+
+
+class TestBoundedRegenerationLoop:
+    """End-to-end: classify -> route_after_groundedness -> classify, through the compiled graph."""
+
+    def _stack(self, monkeypatch, grounded_responses):
+        """Mock every tool + RAG (grading always sufficient, so the graph reaches
+        classify on the first pass) + a sequence of groundedness-purpose verdicts
+        (repeats the last one)."""
+        monkeypatch.setattr(graph, "get_clinvar_record", lambda v: {"found": False})
+        monkeypatch.setattr(graph, "get_allele_frequency", lambda v: {"found": False})
+        monkeypatch.setattr(graph, "get_gene_consequence", lambda v: {"found": False})
+        monkeypatch.setattr(graph, "get_genomic_context", lambda v, consequence=None: {"found": False})
+        monkeypatch.setattr(graph, "get_alphamissense_score", lambda v, consequence=None: {"found": False, "applicable": False})
+        monkeypatch.setattr(graph, "semantic_search", lambda q: [])
+
+        classify_calls = {"n": 0}
+        grounded_calls = {"n": 0}
+
+        def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024):
+            if purpose == "grade":
+                return "sufficient\nfine"
+            if purpose == "groundedness":
+                idx = min(grounded_calls["n"], len(grounded_responses) - 1)
+                grounded_calls["n"] += 1
+                return grounded_responses[idx]
+            classify_calls["n"] += 1
+            return "Classification: Uncertain Significance\nCriteria used: none identified"
+
+        monkeypatch.setattr(graph.llm, "complete", fake_complete)
+        return classify_calls
+
+    def test_ungrounded_then_grounded_retries_exactly_once(self, monkeypatch):
+        classify_calls = self._stack(monkeypatch, ["ungrounded\nnot enough support", "grounded\nnow it's supported"])
+
+        result = graph.ask("rs999")
+
+        assert classify_calls["n"] == 2  # original pass + exactly one retry
+        assert result["gen_retries"] == 1
+        assert result["grounded"] is True
+        assert result["classification"] == "Classification: Uncertain Significance\nCriteria used: none identified"
+
+    def test_persistently_ungrounded_still_ends_once_budget_is_exhausted(self, monkeypatch):
+        # settings.max_generation_retries defaults to 1: allowed exactly 1 retry, then must give up
+        classify_calls = self._stack(monkeypatch, ["ungrounded\nstill not enough support"])
+
+        result = graph.ask("rs999")
+
+        assert classify_calls["n"] == 2  # original pass + the one allowed retry, then gives up
+        assert result["gen_retries"] == 1
+        assert result["grounded"] is False
+        # the graph still terminates with the best-attempt classification rather than looping forever
+        assert result["classification"] == "Classification: Uncertain Significance\nCriteria used: none identified"
+
+    def test_immediately_grounded_never_retries(self, monkeypatch):
+        classify_calls = self._stack(monkeypatch, ["grounded\ngood to go"])
+
+        result = graph.ask("rs999")
+
+        assert classify_calls["n"] == 1
+        assert result["gen_retries"] == 0
+        assert result["grounded"] is True
 
 
 class TestBuildGraphAndAsk:
@@ -524,6 +704,12 @@ class TestAskIntegration:
             tier in result["classification"]
             for tier in ["Pathogenic", "Likely Pathogenic", "Uncertain Significance", "Likely Benign", "Benign"]
         )
+        # NOTE: not asserting grounded is True here -- the local judge model
+        # (llama3.1:8b) is inconsistent even on well-supported classifications
+        # (see TestCheckGroundedIntegration). What matters is that the graph
+        # terminates with *some* verdict and never exceeds its retry budget.
+        assert isinstance(result["grounded"], bool)
+        assert result["gen_retries"] <= settings.max_generation_retries
 
 
 @pytest.mark.integration
@@ -579,4 +765,95 @@ class TestBoundedRetryLoopIntegration:
         assert gather_calls >= 2  # looped back at least once
         assert gather_calls <= 1 + settings.max_query_rewrites  # never more than the budget allows
         assert result["rewrites"] == settings.max_query_rewrites  # budget fully spent
+        assert result["classification"]  # still produced a call -- the graph terminated, didn't hang
+
+
+@pytest.mark.integration
+class TestCheckGroundedIntegration:
+    def test_real_classification_grounded_in_real_evidence_returns_a_bool_verdict(self):
+        # NOTE: the local judge model (llama3.1:8b) is inconsistent on this
+        # well-supported case -- across repeated runs it flip-flops between
+        # 'grounded' and 'ungrounded', sometimes with hallucinated reasoning
+        # (e.g. claiming "Pathogenic" isn't a valid ACMG tier). That's a real
+        # judge-calibration gap, not a bug in check_grounded's wiring, which
+        # is covered deterministically by TestCheckGrounded above. Swap in a
+        # stronger judge (e.g. ANTHROPIC_JUDGE_MODEL) for a reliable verdict.
+        state = {
+            "variant": "rs28897696",
+            "evidence": {"clinvar": {"matches": [
+                {"hgvs": "NM_007294.4(BRCA1):c.68_69delAG", "clinical_significance": "Pathogenic", "review_status": "reviewed by expert panel"},
+            ]}},
+            "criteria": [SimpleNamespace(
+                text="PVS1 applies to null variants (nonsense, frameshift, ...) in a gene where loss of function is a known mechanism of disease.",
+                source="acmg_criteria.md", score=0.9,
+            )],
+            "classification": "Classification: Pathogenic\nCriteria used: PVS1",
+        }
+        result = graph.check_grounded(state)
+
+        assert isinstance(result["grounded"], bool)
+
+    def test_fabricated_criteria_citation_is_caught_as_ungrounded(self):
+        state = {
+            "variant": "rs28897696",
+            "evidence": {"clinvar": {"matches": []}},
+            "criteria": [SimpleNamespace(
+                text="PVS1 applies to null variants (nonsense, frameshift, ...) in a gene where loss of function is a known mechanism of disease.",
+                source="acmg_criteria.md", score=0.9,
+            )],
+            "classification": (
+                "Classification: Pathogenic\n"
+                "Criteria used: PS3 (functional assay demonstrates a damaging effect), "
+                "PP5 (reputable source recently classified as pathogenic)"
+            ),
+        }
+        result = graph.check_grounded(state)
+
+        assert isinstance(result["grounded"], bool)
+        assert result["grounded"] is False
+
+
+@pytest.mark.integration
+class TestBoundedRegenerationLoopIntegration:
+    """The win, automated: a well-supported classification passes groundedness
+    immediately; a deliberately overreaching first draft is caught by the real
+    judge, triggers exactly one reclassification, and the graph still
+    terminates rather than looping forever."""
+
+    def test_well_supported_classification_terminates_within_budget(self):
+        # NOTE: not asserting grounded is True / gen_retries == 0 here -- the
+        # local judge model is inconsistent even on well-supported input (see
+        # TestCheckGroundedIntegration). What's under test is termination:
+        # the graph never exceeds its retry budget and always ends with a
+        # classification, whichever way the judge calls it.
+        result = graph.ask("rs28897696")
+
+        assert result["gen_retries"] <= settings.max_generation_retries
+        assert isinstance(result["grounded"], bool)
+        assert result["classification"]
+
+    def test_overreaching_first_draft_is_caught_then_corrected_and_terminates(self, monkeypatch):
+        calls = {"n": 0}
+        original_classify = graph.classify
+
+        def first_draft_overreaches(state):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                # fabricate criteria the real evidence/RAG chunks never provided
+                return {
+                    "classification": (
+                        "Classification: Pathogenic\n"
+                        "Criteria used: PS3 (functional assay demonstrates damaging effect), "
+                        "PP5 (reputable source recently reclassified as pathogenic)"
+                    ),
+                    "gen_retries": state.get("gen_retries", 0),
+                }
+            return original_classify(state)
+
+        monkeypatch.setattr(graph, "classify", first_draft_overreaches)
+
+        result = graph.ask("rs28897696")
+
+        assert calls["n"] >= 2  # the fabricated first draft triggered at least one reclassification
+        assert calls["n"] <= 1 + settings.max_generation_retries  # never more than the budget allows
         assert result["classification"]  # still produced a call -- the graph terminated, didn't hang

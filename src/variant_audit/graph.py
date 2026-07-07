@@ -16,8 +16,6 @@ Flow (bounded loops guarantee termination):
   grade_evidence    : is there enough evidence to classify? (llm.complete, purpose="grade")
   classify          : combine criteria -> Pathogenic / VUS / Benign + cited criteria
   check_grounded    : are the cited criteria actually supported? (purpose="groundedness")
-
-TODO(day-8..9): add the grading node + conditional edges + bounded loops.
 """
 
 from typing import TypedDict
@@ -158,8 +156,10 @@ def grade_evidence(state: GraphState) -> dict:
     return {"sufficient": _parse_sufficiency(verdict)}
 
 
-def classify(state: GraphState) -> dict:
-    """Combine ACMG criteria into a classification with cited criteria."""
+def _build_evidence_and_criteria_text(state: GraphState) -> tuple[str, str]:
+    """Format the ClinVar evidence + retrieved ACMG criteria the same way for
+    both classify() and check_grounded() -- the groundedness check has to see
+    exactly what classify() saw, or it's grading against the wrong context."""
     variant = state["variant"]
     matches = state["evidence"].get("clinvar", {}).get("matches", [])
     chunks = state["criteria"]
@@ -177,6 +177,21 @@ def classify(state: GraphState) -> dict:
     else:
         evidence_text = f"No ClinVar record found for {variant}."
 
+    return evidence_text, criteria_text
+
+
+def classify(state: GraphState) -> dict:
+    """Combine ACMG criteria into a classification with cited criteria.
+
+    Also advances the `gen_retries` counter on a retry entry (i.e. when
+    check_grounded has looped back here), mirroring gather_evidence's
+    `rewrites` discipline -- `state["classification"]` is only empty on the
+    very first pass, since every prior classify() call always sets it.
+    """
+    variant = state["variant"]
+    evidence_text, criteria_text = _build_evidence_and_criteria_text(state)
+    is_retry = bool(state.get("classification"))
+
     prompt = (
         f"Variant: {variant}\n\n"
         f"== ClinVar Evidence ==\n{evidence_text}\n\n"
@@ -184,12 +199,43 @@ def classify(state: GraphState) -> dict:
         f"Classify this variant."
     )
     answer = llm.complete(prompt, system=SYSTEM_PROMPT, purpose="generate")
-    return {"classification": answer}
+    return {
+        "classification": answer,
+        "gen_retries": state.get("gen_retries", 0) + 1 if is_retry else state.get("gen_retries", 0),
+    }
+
+
+GROUNDED_SYSTEM_PROMPT = (
+    "You are verifying whether a variant classification is grounded in the evidence "
+    "and ACMG criteria it was given — you are not classifying the variant yourself. "
+    "Check every specific claim in the classification (the tier called, and each ACMG "
+    "criterion cited) against the ClinVar evidence and ACMG criteria text provided. "
+    "If the classification cites a criterion that isn't in the provided criteria text, "
+    "or asserts a fact the evidence doesn't support, that's ungrounded. "
+    "Respond with exactly one word on the first line — 'grounded' or 'ungrounded' — "
+    "then a one-sentence reason on the second line."
+)
+
+
+def _parse_grounded(verdict: str) -> bool:
+    first_line = verdict.strip().splitlines()[0].strip().lower() if verdict.strip() else ""
+    if "ungrounded" in first_line:
+        return False
+    return first_line.startswith("grounded")
 
 
 def check_grounded(state: GraphState) -> dict:
-    """Verify every cited criterion is supported by the evidence/criteria."""
-    raise NotImplementedError("TODO(day-9): llm.complete(purpose='groundedness')")
+    """Verify every claim in the classification is supported by the evidence/criteria."""
+    evidence_text, criteria_text = _build_evidence_and_criteria_text(state)
+    prompt = (
+        f"Variant: {state['variant']}\n\n"
+        f"== Classification to verify ==\n{state['classification']}\n\n"
+        f"== ClinVar Evidence ==\n{evidence_text}\n\n"
+        f"== Relevant ACMG Criteria ==\n{criteria_text}\n\n"
+        f"Is every claim in this classification grounded in the evidence and criteria above?"
+    )
+    verdict = llm.complete(prompt, system=GROUNDED_SYSTEM_PROMPT, purpose="groundedness", max_tokens=64)
+    return {"grounded": _parse_grounded(verdict)}
 
 
 # --- conditional edges ---
@@ -203,23 +249,26 @@ def route_after_grading(state: GraphState) -> str:
 
 def route_after_groundedness(state: GraphState) -> str:
     """END if grounded OR out of retries; else 'classify' (bounded retry)."""
-    raise NotImplementedError("TODO(day-9): use settings.max_generation_retries")
+    if state["grounded"] or state["gen_retries"] >= settings.max_generation_retries:
+        return END
+    return "classify"
 
 
 def build_graph():
     """Wire the nodes + edges into a compiled StateGraph.
 
-    gather_evidence -> retrieve_criteria -> grade_evidence --(sufficient)--> classify -> END
-            ^                                                    |
-            +------------------(insufficient, bounded)-----------+
-
-    check_grounded and its conditional edge are still day-9 (classify -> END directly).
+    gather_evidence -> retrieve_criteria -> grade_evidence --(sufficient)--> classify -> check_grounded --(grounded)--> END
+            ^                                                    |                                            |
+            +------------------(insufficient, bounded)-----------+                                            |
+                                                                   ^                                            |
+                                                                   +-------------(ungrounded, bounded)----------+
     """
     graph = StateGraph(GraphState)
     graph.add_node("gather_evidence", gather_evidence)
     graph.add_node("retrieve_criteria", retrieve_criteria)
     graph.add_node("grade_evidence", grade_evidence)
     graph.add_node("classify", classify)
+    graph.add_node("check_grounded", check_grounded)
 
     graph.set_entry_point("gather_evidence")
     graph.add_edge("gather_evidence", "retrieve_criteria")
@@ -229,7 +278,12 @@ def build_graph():
         route_after_grading,
         {"gather_evidence": "gather_evidence", "classify": "classify"},
     )
-    graph.add_edge("classify", END)
+    graph.add_edge("classify", "check_grounded")
+    graph.add_conditional_edges(
+        "check_grounded",
+        route_after_groundedness,
+        {"classify": "classify", END: END},
+    )
 
     return graph.compile()
 
