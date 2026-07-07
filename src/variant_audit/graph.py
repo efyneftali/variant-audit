@@ -53,8 +53,15 @@ def gather_evidence(state: GraphState) -> dict:
 
     Each tool degrades to a {"found": False} result for an unknown/malformed
     variant rather than raising, so one missing source never blocks the others.
+
+    Also advances the `rewrites` counter on a retry entry (i.e. when
+    grade_evidence has looped back here), which is what makes
+    route_after_grading's budget check a real, bounded limit rather than dead
+    code -- `state["evidence"]` is only empty on the very first pass, since
+    every prior gather_evidence call always populates all five keys.
     """
     variant = state["variant"]
+    is_retry = bool(state.get("evidence"))
     ensembl_record = get_gene_consequence(variant)
     return {
         "evidence": {
@@ -63,7 +70,8 @@ def gather_evidence(state: GraphState) -> dict:
             "ensembl": ensembl_record,
             "ucsc": get_genomic_context(variant, consequence=ensembl_record),
             "alphamissense": get_alphamissense_score(variant, consequence=ensembl_record),
-        }
+        },
+        "rewrites": state.get("rewrites", 0) + 1 if is_retry else state.get("rewrites", 0),
     }
 
 
@@ -188,7 +196,9 @@ def check_grounded(state: GraphState) -> dict:
 
 def route_after_grading(state: GraphState) -> str:
     """'classify' if sufficient OR out of budget; else 'gather_evidence' (bounded loop)."""
-    raise NotImplementedError("TODO(day-9): use settings.max_query_rewrites")
+    if state["sufficient"] or state["rewrites"] >= settings.max_query_rewrites:
+        return "classify"
+    return "gather_evidence"
 
 
 def route_after_groundedness(state: GraphState) -> str:
@@ -199,17 +209,26 @@ def route_after_groundedness(state: GraphState) -> str:
 def build_graph():
     """Wire the nodes + edges into a compiled StateGraph.
 
-    Linear for now (day-6): gather_evidence -> retrieve_criteria -> classify -> END.
-    grade_evidence/check_grounded and their conditional edges land day 8-9.
+    gather_evidence -> retrieve_criteria -> grade_evidence --(sufficient)--> classify -> END
+            ^                                                    |
+            +------------------(insufficient, bounded)-----------+
+
+    check_grounded and its conditional edge are still day-9 (classify -> END directly).
     """
     graph = StateGraph(GraphState)
     graph.add_node("gather_evidence", gather_evidence)
     graph.add_node("retrieve_criteria", retrieve_criteria)
+    graph.add_node("grade_evidence", grade_evidence)
     graph.add_node("classify", classify)
 
     graph.set_entry_point("gather_evidence")
     graph.add_edge("gather_evidence", "retrieve_criteria")
-    graph.add_edge("retrieve_criteria", "classify")
+    graph.add_edge("retrieve_criteria", "grade_evidence")
+    graph.add_conditional_edges(
+        "grade_evidence",
+        route_after_grading,
+        {"gather_evidence": "gather_evidence", "classify": "classify"},
+    )
     graph.add_edge("classify", END)
 
     return graph.compile()

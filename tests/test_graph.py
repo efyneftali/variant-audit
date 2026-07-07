@@ -15,6 +15,7 @@ from types import SimpleNamespace
 import pytest
 
 from src.variant_audit import classify, graph
+from src.variant_audit.config import settings
 
 GNOMAD_RESULT = {
     "variant": "rs28897696",
@@ -85,6 +86,9 @@ def fake_stack(monkeypatch):
         llm_calls["prompt"] = prompt
         llm_calls["system"] = system
         llm_calls["purpose"] = purpose
+        if purpose == "grade":
+            # happy path: evidence is graded sufficient immediately, one pass, no retry loop
+            return "sufficient\nEnough evidence to classify."
         return "Classification: Uncertain Significance\nCriteria used: none identified"
 
     monkeypatch.setattr(graph.llm, "complete", fake_complete)
@@ -102,7 +106,8 @@ class TestGatherEvidence:
                 "ensembl": ENSEMBL_RESULT,
                 "ucsc": UCSC_RESULT,
                 "alphamissense": ALPHAMISSENSE_RESULT,
-            }
+            },
+            "rewrites": 0,
         }
 
     def test_passes_variant_through_to_clinvar_lookup(self, monkeypatch):
@@ -332,6 +337,120 @@ class TestGradeEvidence:
         assert "not applicable" in prompt
 
 
+class TestRouteAfterGrading:
+    """Pure routing logic -- given a state, which node comes next."""
+
+    def test_sufficient_goes_to_classify_regardless_of_budget(self):
+        assert graph.route_after_grading({"sufficient": True, "rewrites": 0}) == "classify"
+        assert graph.route_after_grading({"sufficient": True, "rewrites": 99}) == "classify"
+
+    def test_insufficient_and_under_budget_loops_back_to_gather_evidence(self):
+        # default settings.max_query_rewrites is 1, so rewrites=0 is still under budget
+        assert graph.route_after_grading({"sufficient": False, "rewrites": 0}) == "gather_evidence"
+
+    def test_insufficient_and_at_budget_gives_up_and_goes_to_classify(self):
+        assert graph.route_after_grading({"sufficient": False, "rewrites": 1}) == "classify"
+
+    def test_insufficient_and_over_budget_gives_up_and_goes_to_classify(self):
+        assert graph.route_after_grading({"sufficient": False, "rewrites": 5}) == "classify"
+
+    def test_respects_a_wider_or_narrower_configured_budget(self, monkeypatch):
+        monkeypatch.setattr(graph, "settings", SimpleNamespace(max_query_rewrites=0))
+        assert graph.route_after_grading({"sufficient": False, "rewrites": 0}) == "classify"
+
+        monkeypatch.setattr(graph, "settings", SimpleNamespace(max_query_rewrites=3))
+        assert graph.route_after_grading({"sufficient": False, "rewrites": 2}) == "gather_evidence"
+        assert graph.route_after_grading({"sufficient": False, "rewrites": 3}) == "classify"
+
+
+class TestGatherEvidenceRewritesCounter:
+    def test_first_pass_leaves_rewrites_unchanged(self, monkeypatch):
+        monkeypatch.setattr(graph, "get_clinvar_record", lambda v: {"found": False})
+        monkeypatch.setattr(graph, "get_allele_frequency", lambda v: {"found": False})
+        monkeypatch.setattr(graph, "get_gene_consequence", lambda v: {"found": False})
+        monkeypatch.setattr(graph, "get_genomic_context", lambda v, consequence=None: {"found": False})
+        monkeypatch.setattr(graph, "get_alphamissense_score", lambda v, consequence=None: {"found": False, "applicable": False})
+
+        result = graph.gather_evidence({"variant": "rs999", "evidence": {}, "rewrites": 0})
+
+        assert result["rewrites"] == 0
+
+    def test_retry_pass_increments_rewrites(self, monkeypatch):
+        monkeypatch.setattr(graph, "get_clinvar_record", lambda v: {"found": False})
+        monkeypatch.setattr(graph, "get_allele_frequency", lambda v: {"found": False})
+        monkeypatch.setattr(graph, "get_gene_consequence", lambda v: {"found": False})
+        monkeypatch.setattr(graph, "get_genomic_context", lambda v, consequence=None: {"found": False})
+        monkeypatch.setattr(graph, "get_alphamissense_score", lambda v, consequence=None: {"found": False, "applicable": False})
+
+        # non-empty "evidence" is the signal that this is a retry, not the first pass
+        prior_evidence = {"clinvar": {"found": False}, "gnomad": {"found": False}, "ensembl": {"found": False}, "ucsc": {"found": False}, "alphamissense": {"found": False, "applicable": False}}
+        result = graph.gather_evidence({"variant": "rs999", "evidence": prior_evidence, "rewrites": 0})
+
+        assert result["rewrites"] == 1
+
+
+class TestBoundedRetryLoop:
+    """End-to-end: grade_evidence -> route_after_grading -> gather_evidence, through the compiled graph."""
+
+    def _stack(self, monkeypatch, grade_responses):
+        """Mock every tool + a sequence of grade-purpose verdicts (repeats the last one)."""
+        call_count = {"gather": 0}
+
+        def fake_clinvar(v):
+            call_count["gather"] += 1
+            return {"found": False}
+
+        monkeypatch.setattr(graph, "get_clinvar_record", fake_clinvar)
+        monkeypatch.setattr(graph, "get_allele_frequency", lambda v: {"found": False})
+        monkeypatch.setattr(graph, "get_gene_consequence", lambda v: {"found": False})
+        monkeypatch.setattr(graph, "get_genomic_context", lambda v, consequence=None: {"found": False})
+        monkeypatch.setattr(graph, "get_alphamissense_score", lambda v, consequence=None: {"found": False, "applicable": False})
+        monkeypatch.setattr(graph, "semantic_search", lambda q: [])
+
+        grade_calls = {"n": 0}
+
+        def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024):
+            if purpose == "grade":
+                idx = min(grade_calls["n"], len(grade_responses) - 1)
+                grade_calls["n"] += 1
+                return grade_responses[idx]
+            return "Classification: Uncertain Significance\nCriteria used: none identified"
+
+        monkeypatch.setattr(graph.llm, "complete", fake_complete)
+        return call_count
+
+    def test_insufficient_then_sufficient_retries_exactly_once(self, monkeypatch):
+        call_count = self._stack(monkeypatch, ["insufficient\nnot enough yet", "sufficient\nnow it's enough"])
+
+        result = graph.ask("rs999")
+
+        assert call_count["gather"] == 2  # original pass + exactly one retry
+        assert result["rewrites"] == 1
+        assert result["sufficient"] is True
+        assert result["classification"] == "Classification: Uncertain Significance\nCriteria used: none identified"
+
+    def test_persistently_insufficient_still_classifies_once_budget_is_exhausted(self, monkeypatch):
+        # settings.max_query_rewrites defaults to 1: allowed exactly 1 retry, then must proceed anyway
+        call_count = self._stack(monkeypatch, ["insufficient\nstill not enough"])
+
+        result = graph.ask("rs999")
+
+        assert call_count["gather"] == 2  # original pass + the one allowed retry, then gives up
+        assert result["rewrites"] == 1
+        assert result["sufficient"] is False
+        # classify() runs regardless -- its own prompt already handles thin evidence as VUS
+        assert result["classification"] == "Classification: Uncertain Significance\nCriteria used: none identified"
+
+    def test_immediately_sufficient_never_retries(self, monkeypatch):
+        call_count = self._stack(monkeypatch, ["sufficient\ngood to go"])
+
+        result = graph.ask("rs999")
+
+        assert call_count["gather"] == 1
+        assert result["rewrites"] == 0
+        assert result["sufficient"] is True
+
+
 class TestBuildGraphAndAsk:
     def test_build_graph_compiles(self):
         compiled = graph.build_graph()
@@ -371,10 +490,15 @@ class TestParityWithClassifyVariant:
         }
         chunks = [SimpleNamespace(text="PVS1 applies to null variants.", source="acmg_criteria.md", score=0.9)]
 
+        def fake_complete(*a, purpose="generate", **kw):
+            if purpose == "grade":
+                return "sufficient\nEnough evidence to classify."
+            return "Classification: Pathogenic\nCriteria used: PVS1"
+
         for module in (classify, graph):
             monkeypatch.setattr(module, "get_clinvar_record", lambda v: clinvar_result)
             monkeypatch.setattr(module, "semantic_search", lambda q: chunks)
-            monkeypatch.setattr(module.llm, "complete", lambda *a, **kw: "Classification: Pathogenic\nCriteria used: PVS1")
+            monkeypatch.setattr(module.llm, "complete", fake_complete)
 
         # graph.gather_evidence also queries gnomAD/Ensembl/UCSC/AlphaMissense; classify_variant doesn't.
         monkeypatch.setattr(graph, "get_allele_frequency", lambda v: {"found": False})
@@ -416,3 +540,43 @@ class TestGradeEvidenceIntegration:
 
         assert isinstance(result["sufficient"], bool)
         assert result["sufficient"] is False
+
+
+@pytest.mark.integration
+class TestBoundedRetryLoopIntegration:
+    """The win, automated: a well-covered variant goes straight through; a
+    thin-evidence variant loops back at least once, and the graph still
+    terminates with a classification either way."""
+
+    def _run_with_gather_spy(self, variant):
+        call_count = {"n": 0}
+        original_gather = graph.gather_evidence
+
+        def spy(state):
+            call_count["n"] += 1
+            return original_gather(state)
+
+        graph.gather_evidence = spy
+        try:
+            result = graph.ask(variant)
+        finally:
+            graph.gather_evidence = original_gather
+        return result, call_count["n"]
+
+    def test_well_covered_variant_goes_straight_through(self):
+        result, gather_calls = self._run_with_gather_spy("rs28897696")
+
+        assert gather_calls == 1
+        assert result["rewrites"] == 0
+        assert result["sufficient"] is True
+        assert result["classification"]
+
+    def test_thin_evidence_variant_loops_back_then_still_terminates(self):
+        # a syntactically valid but nonexistent rsID: every tool comes back
+        # found=False, so grading should say insufficient and trigger a retry
+        result, gather_calls = self._run_with_gather_spy("rs00000000001")
+
+        assert gather_calls >= 2  # looped back at least once
+        assert gather_calls <= 1 + settings.max_query_rewrites  # never more than the budget allows
+        assert result["rewrites"] == settings.max_query_rewrites  # budget fully spent
+        assert result["classification"]  # still produced a call -- the graph terminated, didn't hang
