@@ -261,6 +261,77 @@ class TestClassify:
         assert "Benign" in system
 
 
+class TestGradeEvidence:
+    def _grade_state(self, evidence):
+        return {"variant": "rs28897696", "evidence": evidence}
+
+    def test_sufficient_verdict_returns_true(self, monkeypatch):
+        monkeypatch.setattr(graph.llm, "complete", lambda *a, **kw: "sufficient\nClinVar plus consequence data is enough.")
+        result = graph.grade_evidence(self._grade_state({"clinvar": {"found": True, "matches": []}}))
+        assert result == {"sufficient": True}
+
+    def test_insufficient_verdict_returns_false(self, monkeypatch):
+        monkeypatch.setattr(graph.llm, "complete", lambda *a, **kw: "insufficient\nNothing was found anywhere.")
+        result = graph.grade_evidence(self._grade_state({}))
+        assert result == {"sufficient": False}
+
+    def test_verdict_parsing_is_case_insensitive_and_tolerates_trailing_text(self, monkeypatch):
+        monkeypatch.setattr(graph.llm, "complete", lambda *a, **kw: "SUFFICIENT - yes, clearly enough evidence.")
+        result = graph.grade_evidence(self._grade_state({}))
+        assert result == {"sufficient": True}
+
+    def test_ambiguous_verdict_defaults_to_insufficient(self, monkeypatch):
+        # conservative default: if we can't tell, don't let the graph proceed as if it were sufficient
+        monkeypatch.setattr(graph.llm, "complete", lambda *a, **kw: "unclear, hard to say")
+        result = graph.grade_evidence(self._grade_state({}))
+        assert result == {"sufficient": False}
+
+    def test_uses_grade_purpose_and_small_max_tokens(self, monkeypatch):
+        calls = {}
+
+        def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024):
+            calls["purpose"] = purpose
+            calls["max_tokens"] = max_tokens
+            return "sufficient\nfine"
+
+        monkeypatch.setattr(graph.llm, "complete", fake_complete)
+        graph.grade_evidence(self._grade_state({}))
+
+        assert calls["purpose"] == "grade"
+        assert calls["max_tokens"] <= 128
+
+    def test_prompt_summarizes_all_five_sources_when_present(self, monkeypatch):
+        calls = {}
+        monkeypatch.setattr(graph.llm, "complete", lambda prompt, **kw: calls.update({"prompt": prompt}) or "sufficient\nfine")
+
+        evidence = {
+            "clinvar": {"found": True, "matches": [{"hgvs": "x", "clinical_significance": "Pathogenic", "review_status": "y"}]},
+            "gnomad": GNOMAD_RESULT,
+            "ensembl": ENSEMBL_RESULT,
+            "ucsc": UCSC_RESULT,
+            "alphamissense": ALPHAMISSENSE_RESULT,
+        }
+        graph.grade_evidence(self._grade_state(evidence))
+        prompt = calls["prompt"]
+
+        assert "1 match(es)" in prompt
+        assert "5.2569325798396634e-05" in prompt
+        assert "frameshift_variant" in prompt
+        assert "1.46348" in prompt
+        assert "0.6381" in prompt and "likely_pathogenic" in prompt
+
+    def test_prompt_degrades_gracefully_with_no_sources_present(self, monkeypatch):
+        calls = {}
+        monkeypatch.setattr(graph.llm, "complete", lambda prompt, **kw: calls.update({"prompt": prompt}) or "insufficient\nnothing found")
+
+        graph.grade_evidence(self._grade_state({}))
+        prompt = calls["prompt"]
+
+        assert "no record" in prompt
+        assert "no conservation data" in prompt
+        assert "not applicable" in prompt
+
+
 class TestBuildGraphAndAsk:
     def test_build_graph_compiles(self):
         compiled = graph.build_graph()
@@ -329,3 +400,19 @@ class TestAskIntegration:
             tier in result["classification"]
             for tier in ["Pathogenic", "Likely Pathogenic", "Uncertain Significance", "Likely Benign", "Benign"]
         )
+
+
+@pytest.mark.integration
+class TestGradeEvidenceIntegration:
+    def test_real_well_populated_evidence_graded_sufficient(self):
+        gathered = graph.gather_evidence({"variant": "rs28897696"})
+        result = graph.grade_evidence({"variant": "rs28897696", "evidence": gathered["evidence"]})
+
+        assert isinstance(result["sufficient"], bool)
+        assert result["sufficient"] is True
+
+    def test_real_empty_evidence_graded_insufficient(self):
+        result = graph.grade_evidence({"variant": "rsFAKE", "evidence": {}})
+
+        assert isinstance(result["sufficient"], bool)
+        assert result["sufficient"] is False

@@ -43,6 +43,7 @@ class GraphState(TypedDict):
     rewrites: int             # evidence-gathering loop counter (bounded)
     gen_retries: int          # regeneration counter (bounded)
     grounded: bool
+    sufficient: bool          # grade_evidence's verdict: enough evidence to classify?
 
 
 # --- nodes (each takes GraphState, returns a partial state dict) ---
@@ -81,9 +82,72 @@ def retrieve_criteria(state: GraphState) -> dict:
     return {"criteria": chunks}
 
 
+GRADE_SYSTEM_PROMPT = (
+    "You are grading whether gathered variant evidence is sufficient to reach an "
+    "ACMG classification (Pathogenic/Likely Pathogenic/Uncertain Significance/"
+    "Likely Benign/Benign) — you are not classifying the variant yourself. "
+    "Missing sources are normal and often still enough (e.g. a clear ClinVar "
+    "expert-panel assertion, or a clear null-variant consequence, can be enough "
+    "on its own). Only call it insufficient if essentially nothing was found "
+    "anywhere and there's no basis for a call. "
+    "Respond with exactly one word on the first line — 'sufficient' or "
+    "'insufficient' — then a one-sentence reason on the second line."
+)
+
+
+def _summarize_evidence_for_grading(evidence: dict, variant: str) -> str:
+    """Compact per-source presence/absence summary — enough for a sufficiency
+    judgment, not the full narrative detail classify() needs."""
+    clinvar = evidence.get("clinvar", {})
+    gnomad = evidence.get("gnomad", {})
+    ensembl = evidence.get("ensembl", {})
+    ucsc = evidence.get("ucsc", {})
+    alphamissense = evidence.get("alphamissense", {})
+
+    clinvar_line = (
+        f"{len(clinvar.get('matches', []))} match(es)" if clinvar.get("found") else "no record"
+    )
+    gnomad_line = (
+        f"allele_freq={gnomad.get('allele_freq')}" if gnomad.get("found") else "no record (absent from gnomAD)"
+    )
+    ensembl_line = (
+        f"{ensembl.get('most_severe_consequence')} (impact={ensembl.get('impact')})"
+        if ensembl.get("found") else "no record"
+    )
+    ucsc_line = (
+        f"phyloP={ucsc.get('phylop')}, phastCons={ucsc.get('phastcons')}"
+        if ucsc.get("found") else "no conservation data"
+    )
+    if not alphamissense.get("applicable"):
+        alphamissense_line = "not applicable (non-missense)"
+    elif alphamissense.get("found"):
+        alphamissense_line = f"score={alphamissense.get('am_pathogenicity')} ({alphamissense.get('am_class')})"
+    else:
+        alphamissense_line = "missense, but not in the precomputed table"
+
+    return (
+        f"Variant: {variant}\n"
+        f"ClinVar: {clinvar_line}\n"
+        f"gnomAD frequency: {gnomad_line}\n"
+        f"Ensembl consequence: {ensembl_line}\n"
+        f"Conservation (UCSC): {ucsc_line}\n"
+        f"AlphaMissense: {alphamissense_line}"
+    )
+
+
+def _parse_sufficiency(verdict: str) -> bool:
+    first_line = verdict.strip().splitlines()[0].strip().lower() if verdict.strip() else ""
+    if "insufficient" in first_line:
+        return False
+    return first_line.startswith("sufficient")
+
+
 def grade_evidence(state: GraphState) -> dict:
     """Decide whether the gathered evidence is sufficient to classify."""
-    raise NotImplementedError("TODO(day-8): llm.complete(purpose='grade')")
+    summary = _summarize_evidence_for_grading(state["evidence"], state["variant"])
+    prompt = f"{summary}\n\nIs this evidence sufficient to reach an ACMG classification?"
+    verdict = llm.complete(prompt, system=GRADE_SYSTEM_PROMPT, purpose="grade", max_tokens=64)
+    return {"sufficient": _parse_sufficiency(verdict)}
 
 
 def classify(state: GraphState) -> dict:
@@ -161,5 +225,6 @@ def ask(variant: str) -> dict:
         "rewrites": 0,
         "gen_retries": 0,
         "grounded": False,
+        "sufficient": False,
     }
     return build_graph().invoke(initial_state)
