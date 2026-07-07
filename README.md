@@ -1,27 +1,27 @@
 # Variant Audit
 
-> A clinical variant-classification assistant — and the evaluation harness that decides whether it's safe to ship.
+> A clinical variant-classification assistant, and the evaluation harness that decides whether it's safe to ship.
 > **Status:** active development.
 
-Variant Audit takes a genetic variant, gathers evidence from live genomic databases, reasons through the ACMG classification guidelines, and returns a classification (**pathogenic / uncertain / benign**) with cited evidence. Wrapped around that agent is the project's real focus: a rigorous **evaluation harness** — a calibrated LLM-as-judge, statistically honest comparisons, CI release gates, and a production failure-mining loop — that measures whether the agent can be trusted.
+Variant Audit takes a genetic variant, gathers evidence from live genomic databases, reasons through the ACMG classification guidelines, and returns a classification (**pathogenic / uncertain / benign**) with cited evidence. Wrapped around that agent is the project's real focus: a rigorous **evaluation harness** (a calibrated LLM-as-judge, statistically honest comparisons, CI release gates, and a production failure-mining loop) that measures whether the agent can be trusted.
 
-The agent is the *system under test*; the harness is the point. Genomics is a deliberate choice of domain: ClinVar provides authoritative, verifiable ground truth, which is exactly what credible evaluation requires.
+The agent is the *system under test*; the harness is the point. Genomics is a deliberate choice of domain: ClinVar's star-rated, expert-reviewed assertions provide a verifiable proxy for ground truth, not an infallible one. The eval harness scores against high-confidence (≥2★, non-conflicting) calls and treats conflicting or low-confidence ClinVar entries as an explicit abstention test rather than an answer key.
 
-![Architecture — the eval harness (purple) wraps the agent (blue) as the system under test; the agent draws on the RAG rulebook and live MCP evidence (green/amber) and is graded against ClinVar ground truth.](docs/img/variant_audit_hero_architecture.png)
+![Architecture: the eval harness (purple) wraps the agent (blue) as the system under test; the agent draws on the RAG rulebook and live MCP evidence (green/amber) and is graded against ClinVar-derived ground truth.](docs/img/variant_audit_hero_architecture.png)
 
 ## How it works
 
 Three components, each doing a distinct job:
 
-- **RAG — the rulebook.** Retrieval over the ACMG/ClinGen classification guidelines, so the agent reasons from the published standard rather than model memory.
-- **MCP tools — the live evidence.** Each genomic data source is a callable tool: ClinVar (known assertions), gnomAD (population frequency), UCSC (conservation/genomic context), AlphaMissense (computational pathogenicity, missense), Ensembl/VEP (consequence).
-- **State machine (LangGraph) — the reasoning workflow.** Evidence gathering, relevance grading, classification, and a groundedness check, connected by **bounded** correction loops that guarantee termination.
+- **RAG: the rulebook.** Retrieval over the ACMG/ClinGen classification guidelines, so the agent reasons from the published standard rather than model memory.
+- **MCP tools: the live evidence.** Each genomic data source is a callable tool: ClinVar (known assertions), gnomAD (population frequency), UCSC (conservation/genomic context), AlphaMissense (computational pathogenicity, missense), Ensembl/VEP (consequence).
+- **State machine (LangGraph): the reasoning workflow.** Evidence gathering, relevance grading, classification, and a groundedness check, connected by **bounded** correction loops that guarantee termination.
 
-![The reasoning workflow — a LangGraph state machine. Bounded correction loops (dashed) return to gather more evidence or reclassify, and are max-iteration guarded so the graph always terminates.](docs/img/variant_audit_state_machine.png)
+![The reasoning workflow: a LangGraph state machine. Bounded correction loops (dashed) return to gather more evidence or reclassify, and are max-iteration guarded so the graph always terminates.](docs/img/variant_audit_state_machine.png)
 
-The eval harness grades the agent against ClinVar: classification accuracy with harm-weighted error costs, retrieval recall, judge-scored faithfulness, and robustness under input perturbation — gated in CI on every prompt and model change. It's built in four layers, each building on the one below.
+The eval harness grades the agent against ClinVar: classification accuracy with harm-weighted error costs, retrieval recall, judge-scored faithfulness, and robustness under input perturbation, gated in CI on every prompt and model change. It's built in four layers, each building on the one below.
 
-![The eval harness — four layers of rigor: a versioned, stratified golden dataset; a calibrated LLM-as-judge; statistical honesty across N runs; and CI release gates plus a production failure-mining loop.](docs/img/variant_audit_harness_layers.png)
+![The eval harness: four layers of rigor, a versioned, stratified golden dataset; a calibrated LLM-as-judge; statistical honesty across N runs; and CI release gates plus a production failure-mining loop.](docs/img/variant_audit_harness_layers.png)
 
 ## Requirements
 
@@ -29,20 +29,20 @@ Built for macOS + [Homebrew](https://brew.sh).
 
 **Core (to run locally):**
 - Python 3.11+
-- A container runtime — [Colima](https://github.com/abiosoft/colima) + Docker + Docker Compose (`brew install colima docker docker-compose`)
+- A container runtime: [Colima](https://github.com/abiosoft/colima) + Docker + Docker Compose (`brew install colima docker docker-compose`)
   - Homebrew's `docker-compose` formula doesn't register itself as a `docker` CLI plugin, so `docker compose` may fail with `unknown shorthand flag: 'f'`. Fix once: `mkdir -p ~/.docker/cli-plugins && ln -sfn "$(brew --prefix docker-compose)/bin/docker-compose" ~/.docker/cli-plugins/docker-compose`
 - [Ollama](https://ollama.com) for local LLM inference (`brew install ollama`)
-- Qdrant (vector store) — runs as a container, no install
+- Qdrant (vector store), runs as a container, no install
 - Python dependencies in `requirements.txt`
 
-**LLM provider:** the app reads `LLM_PROVIDER` from `.env` — `ollama` (local, free, default) or `anthropic` (Claude API). Develop locally on Ollama; set `LLM_PROVIDER=anthropic` and add an `ANTHROPIC_API_KEY` for production-quality results.
+**LLM provider:** the app reads `LLM_PROVIDER` from `.env`: `ollama` (local, free, default) or `anthropic` (Claude API). Develop locally on Ollama; set `LLM_PROVIDER=anthropic` and add an `ANTHROPIC_API_KEY` for production-quality results.
 
 **Optional (later phases):**
-- `kind` + `helm` + `kubectl` — Kubernetes deployment with Prometheus/Grafana observability
-- `awscli` + `eksctl` — cloud (EKS) deployment
-- `plantuml` (`brew install plantuml`, pulls in `graphviz`/Java) — regenerate diagrams from `docs/diagrams/*.puml` via `make diagrams`
+- `kind` + `helm` + `kubectl`: Kubernetes deployment with Prometheus/Grafana observability
+- `awscli` + `eksctl`: cloud (EKS) deployment
+- `plantuml` (`brew install plantuml`, pulls in `graphviz`/Java): regenerate diagrams from `docs/diagrams/*.puml` via `make diagrams`
 
-A Hugging Face account is **not** required — the default embedding model (`all-MiniLM-L6-v2`) downloads anonymously.
+A Hugging Face account is **not** required, the default embedding model (`all-MiniLM-L6-v2`) downloads anonymously.
 
 ## Running it
 
@@ -54,7 +54,7 @@ git clone <your-repo-url> variant-audit && cd variant-audit
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# 3. configure (defaults to local Ollama — no API key needed)
+# 3. configure (defaults to local Ollama, no API key needed)
 cp .env.example .env
 
 # 4. start the local LLM (separate terminal)
@@ -85,19 +85,19 @@ make eval                                   # run the eval harness, print a scor
 make test   # or: python3 -m pytest tests/ -v
 ```
 
-Unit tests mock the Ollama/Anthropic calls — no live server or API credits required. For a manual end-to-end smoke test against a real provider, run `python3 scratch.py` (requires `ollama serve` running and/or a valid `ANTHROPIC_API_KEY`).
+Unit tests mock the Ollama/Anthropic calls, no live server or API credits required. For a manual end-to-end smoke test against a real provider, run `python3 scratch.py` (requires `ollama serve` running and/or a valid `ANTHROPIC_API_KEY`).
 
 ## MCP servers
 
-`mcp_server.py` wraps `mcp_tools/` (currently `clinvar.py`) as a Model Context Protocol server, so the tools are callable by any MCP client (agent frameworks, the MCP Inspector), not just direct Python imports. `mcp` is a regular dependency in `requirements.txt` — same `.venv` as everything else (needs Python ≥3.10, see Requirements above).
+`mcp_server.py` wraps `mcp_tools/` (currently `clinvar.py`) as a Model Context Protocol server, so the tools are callable by any MCP client (agent frameworks, the MCP Inspector), not just direct Python imports. `mcp` is a regular dependency in `requirements.txt`, same `.venv` as everything else (needs Python ≥3.10, see Requirements above).
 
 ```bash
 PYTHONPATH=src .venv/bin/python -m variant_audit.mcp_server
 ```
 
-**Automated tests** (`tests/test_mcp_server.py`) run as part of the normal suite (`make test`) — covers the tool's delegation logic (mocked, fast) and one real protocol round-trip over stdio (marked `integration`, hits the live ClinVar API).
+**Automated tests** (`tests/test_mcp_server.py`) run as part of the normal suite (`make test`): covers the tool's delegation logic (mocked, fast) and one real protocol round-trip over stdio (marked `integration`, hits the live ClinVar API).
 
-**Testing it with the MCP Inspector** (visual, browser-based; requires Node.js — `brew install node`):
+**Testing it with the MCP Inspector** (visual, browser-based; requires Node.js, `brew install node`):
 
 ```bash
 npx @modelcontextprotocol/inspector -- env PYTHONPATH=src .venv/bin/python -m variant_audit.mcp_server
@@ -128,9 +128,9 @@ variant-audit/
 
 ## Current state (Day 1)
 
-`llm.py` is implemented — the provider-agnostic LLM call every other component routes through. `complete()` picks a model via `_model_for()` (judge model for grading/judging purposes, main model otherwise) and dispatches to `_complete_ollama()` or `_complete_anthropic()` based on `LLM_PROVIDER`. Diagram source in [`docs/diagrams/llm_module.puml`](docs/diagrams/llm_module.puml) — regenerate with `make diagrams` after any architecture change.
+`llm.py` is implemented, the provider-agnostic LLM call every other component routes through. `complete()` picks a model via `_model_for()` (judge model for grading/judging purposes, main model otherwise) and dispatches to `_complete_ollama()` or `_complete_anthropic()` based on `LLM_PROVIDER`. Diagram source in [`docs/diagrams/llm_module.puml`](docs/diagrams/llm_module.puml): regenerate with `make diagrams` after any architecture change.
 
-![LLM module — current state](docs/img/llm_module.png)
+![LLM module: current state](docs/img/llm_module.png)
 
 ## Roadmap
 
