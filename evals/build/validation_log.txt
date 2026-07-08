@@ -1,0 +1,117 @@
+KEEP rs2149808371 (APC, easy, frameshift/LoF)
+KEEP rs886040763 (BRCA2, easy, frameshift/LoF)
+KEEP rs431825307 (BRCA2, easy, frameshift/LoF)
+WARN rs199473100: AlphaMissense call failed AlphaMissense DB not found at data/alphamissense/alphamissense.sqlite — run `python -m variant_audit.mcp_tools.alphamissense --build` first
+KEEP rs199473100 (SCN5A, easy, missense/computational)
+WARN rs193922757: AlphaMissense call failed AlphaMissense DB not found at data/alphamissense/alphamissense.sqlite — run `python -m variant_audit.mcp_tools.alphamissense --build` first
+KEEP rs193922757 (RYR1, easy, missense/computational)
+WARN rs794728292: AlphaMissense call failed AlphaMissense DB not found at data/alphamissense/alphamissense.sqlite — run `python -m variant_audit.mcp_tools.alphamissense --build` first
+KEEP rs794728292 (FBN1, easy, missense/computational)
+DROP rs781214043 (MTHFR): population_frequency slot but allele_freq=6.840647125218046e-06 (not common)
+DROP rs2485017519 (CFTR): population_frequency slot but allele_freq=None (not common)
+DROP rs1572982 (HFE): population_frequency slot but allele_freq=None (not common)
+DROP rs1243164 (SERPINA1): population_frequency slot but allele_freq=None (not common)
+DROP rs1209591790 (CFTR): population_frequency slot but allele_freq=6.843221788818176e-07 (not common)
+DROP rs1800088 (CFTR): population_frequency slot but allele_freq=None (not common)
+DROP rs2485046590 (CFTR): population_frequency slot but allele_freq=None (not common)
+KEEP rs34830471 (CFTR, easy, population_frequency)
+DROP rs779304728 (CFTR): population_frequency slot but allele_freq=1.9705986678753006e-05 (not common)
+KEEP rs1028580 (SERPINA1, easy, population_frequency)
+WARN rs1357935866: gnomAD call failed gnomAD query failed for variant 'rs1357935866'
+WARN rs59548259: gnomAD call failed gnomAD query failed for variant 'rs59548259'
+WARN rs4846051: gnomAD call failed gnomAD query failed for variant 'rs4846051'
+WARN rs960207316: gnomAD call failed gnomAD query failed for variant 'rs960207316'
+WARN rs1792388976: gnomAD call failed gnomAD query failed for variant 'rs1792388976'
+WARN rs45622739: gnomAD call failed gnomAD query failed for variant 'rs45622739'
+WARN rs62469440: gnomAD call failed gnomAD query failed for variant 'rs62469440'
+WARN rs773627677: gnomAD call failed gnomAD query failed for variant 'rs773627677'
+WARN rs1792257064: gnomAD call failed gnomAD query failed for variant 'rs1792257064'
+DROP rs575711764 (CFTR): population_frequency slot but allele_freq=None (not common)
+DROP rs188682544 (CFTR): population_frequency slot but allele_freq=6.571683928289785e-06 (not common)
+DROP rs2485128950 (CFTR): population_frequency slot but allele_freq=None (not common)
+DROP rs2157581 (F5): population_frequency slot but allele_freq=None (not common)
+DROP rs902440317 (CFTR): population_frequency slot but allele_freq=None (not common)
+DROP rs2485122444 (CFTR): population_frequency slot but allele_freq=None (not common)
+DROP rs1584793324 (CFTR): population_frequency slot but allele_freq=None (not common)
+DROP rs1279594912 (CFTR): population_frequency slot but allele_freq=6.569870573549701e-06 (not common)
+DROP rs1359708278 (CFTR): population_frequency slot but allele_freq=None (not common)
+DROP rs748899228 (CFTR): population_frequency slot but allele_freq=4.600420609884332e-05 (not common)
+WARN rs1805171: gnomAD call failed gnomAD query failed for variant 'rs1805171'
+WARN rs3832534: gnomAD call failed gnomAD query failed for variant 'rs3832534'
+WARN rs6036: gnomAD call failed gnomAD query failed for variant 'rs6036'
+WARN rs2485014993: gnomAD call failed gnomAD query failed for variant 'rs2485014993'
+WARN rs991635265: gnomAD call failed gnomAD query failed for variant 'rs991635265'
+WARN rs11628917: gnomAD call failed gnomAD query failed for variant 'rs11628917'
+WARN rs1431645851: gnomAD call failed gnomAD query failed for variant 'rs1431645851'
+WARN rs1300486433: gnomAD call failed gnomAD query failed for variant 'rs1300486433'
+WARN rs376061125: gnomAD call failed gnomAD query failed for variant 'rs376061125'
+WARN rs6023: gnomAD call failed gnomAD query failed for variant 'rs6023'
+WARN rs762942299: gnomAD call failed gnomAD query failed for variant 'rs762942299'
+WARN rs1406922570: gnomAD call failed gnomAD query failed for variant 'rs1406922570'
+WARN rs144486119: gnomAD call failed gnomAD query failed for variant 'rs144486119'
+WARN rs2116221499: gnomAD call failed gnomAD query failed for variant 'rs2116221499'
+WARN rs1303: gnomAD call failed gnomAD query failed for variant 'rs1303'
+DROP rs2504779992 (SERPINA1): population_frequency slot but allele_freq=None (not common)
+KEEP rs1800503 (CFTR, easy, population_frequency)
+WARN rs2274083: AlphaMissense call failed AlphaMissense DB not found at data/alphamissense/alphamissense.sqlite — run `python -m variant_audit.mcp_tools.alphamissense --build` first
+KEEP rs2274083 (GJB2, easy, missense/computational)
+KEEP rs45550632 (MYH7, easy, missense/computational)
+KEEP rs7151241 (MYH7, easy, missense/computational)
+KEEP rs1672560841 (MSH2, hard, frameshift/LoF)
+KEEP rs2153826963 (BRCA1, hard, frameshift/LoF)
+KEEP rs2151538116 (NF1, hard, frameshift/LoF)
+KEEP rs397508070 (KCNQ1, hard, frameshift/LoF)
+KEEP rs193922149 (COL1A1, hard, frameshift/LoF)
+KEEP rs1114167396 (COL1A1, hard, frameshift/LoF)
+DROP rs2228668 (F5): population_frequency slot but allele_freq=None (not common)
+DROP rs980612048 (F5): population_frequency slot but allele_freq=None (not common)
+DROP rs201439832 (F5): population_frequency slot but allele_freq=6.579120503171136e-06 (not common)
+DROP rs747170145 (F5): population_frequency slot but allele_freq=2.6305405760883863e-05 (not common)
+DROP rs779438836 (HFE): population_frequency slot but allele_freq=None (not common)
+DROP rs1457984819 (MTHFR): population_frequency slot but allele_freq=1.4386695184293565e-05 (not common)
+DROP rs756691180 (MTHFR): population_frequency slot but allele_freq=1.3138877939823939e-05 (not common)
+KEEP rs9332618 (F5, hard, population_frequency)
+WARN rs1988607: gnomAD call failed gnomAD query failed for variant 'rs1988607'
+DROP rs2526415233 (F5): VEP not found
+WARN rs1264599239: gnomAD call failed gnomAD query failed for variant 'rs1264599239'
+WARN rs2481608615: gnomAD call failed gnomAD query failed for variant 'rs2481608615'
+WARN rs1660148673: gnomAD call failed gnomAD query failed for variant 'rs1660148673'
+WARN rs113027984: gnomAD call failed gnomAD query failed for variant 'rs113027984'
+WARN rs2526329123: gnomAD call failed gnomAD query failed for variant 'rs2526329123'
+WARN rs2522870519: gnomAD call failed gnomAD query failed for variant 'rs2522870519'
+WARN rs2526327597: gnomAD call failed gnomAD query failed for variant 'rs2526327597'
+WARN rs952054996: gnomAD call failed gnomAD query failed for variant 'rs952054996'
+WARN rs749442724: gnomAD call failed gnomAD query failed for variant 'rs749442724'
+WARN rs748688171: gnomAD call failed gnomAD query failed for variant 'rs748688171'
+WARN rs766313707: gnomAD call failed gnomAD query failed for variant 'rs766313707'
+WARN rs1381171305: gnomAD call failed gnomAD query failed for variant 'rs1381171305'
+DROP rs1182577959 (MTHFR): population_frequency slot but allele_freq=None (not common)
+DROP rs1160965822 (F5): population_frequency slot but allele_freq=6.576005471236552e-06 (not common)
+KEEP rs2269648 (F5, hard, population_frequency)
+DROP rs1488790341 (F5): population_frequency slot but allele_freq=None (not common)
+KEEP rs57637273 (F5, hard, population_frequency)
+KEEP rs200085496 (RYR1, hard, missense/computational)
+KEEP rs765993846 (FBN1, hard, missense/computational)
+KEEP rs2514679999 (RYR1, hard, missense/computational)
+WARN rs1553331600: AlphaMissense call failed AlphaMissense DB not found at data/alphamissense/alphamissense.sqlite — run `python -m variant_audit.mcp_tools.alphamissense --build` first
+KEEP rs1553331600 (MSH6, hardest_vus_confident, missense/computational)
+WARN rs786201688: AlphaMissense call failed AlphaMissense DB not found at data/alphamissense/alphamissense.sqlite — run `python -m variant_audit.mcp_tools.alphamissense --build` first
+KEEP rs786201688 (MSH6, hardest_vus_confident, missense/computational)
+WARN rs778528329: AlphaMissense call failed AlphaMissense DB not found at data/alphamissense/alphamissense.sqlite — run `python -m variant_audit.mcp_tools.alphamissense --build` first
+KEEP rs778528329 (MLH1, hardest_vus_confident, missense/computational)
+WARN rs1554300806: AlphaMissense call failed AlphaMissense DB not found at data/alphamissense/alphamissense.sqlite — run `python -m variant_audit.mcp_tools.alphamissense --build` first
+KEEP rs1554300806 (PMS2, hardest_vus_confident, missense/computational)
+WARN rs1554303870: AlphaMissense call failed AlphaMissense DB not found at data/alphamissense/alphamissense.sqlite — run `python -m variant_audit.mcp_tools.alphamissense --build` first
+KEEP rs1554303870 (PMS2, hardest_vus_confident, missense/computational)
+WARN rs63750659: AlphaMissense call failed AlphaMissense DB not found at data/alphamissense/alphamissense.sqlite — run `python -m variant_audit.mcp_tools.alphamissense --build` first
+KEEP rs63750659 (MLH1, hardest_vus_confident, missense/computational)
+WARN rs879254816: AlphaMissense call failed AlphaMissense DB not found at data/alphamissense/alphamissense.sqlite — run `python -m variant_audit.mcp_tools.alphamissense --build` first
+KEEP rs879254816 (LDLR, hardest_abstain, missense/computational)
+WARN rs111246617: AlphaMissense call failed AlphaMissense DB not found at data/alphamissense/alphamissense.sqlite — run `python -m variant_audit.mcp_tools.alphamissense --build` first
+KEEP rs111246617 (VHL, hardest_abstain, missense/computational)
+KEEP rs879254928 (LDLR, hardest_abstain, frameshift/LoF)
+WARN rs72658858: AlphaMissense call failed AlphaMissense DB not found at data/alphamissense/alphamissense.sqlite — run `python -m variant_audit.mcp_tools.alphamissense --build` first
+KEEP rs72658858 (LDLR, hardest_abstain, missense/computational)
+WARN rs367594943: AlphaMissense call failed AlphaMissense DB not found at data/alphamissense/alphamissense.sqlite — run `python -m variant_audit.mcp_tools.alphamissense --build` first
+KEEP rs367594943 (VHL, hardest_abstain, missense/computational)
+KEEP rs755704180 (RB1, hardest_abstain, frameshift/LoF)

@@ -14,6 +14,13 @@ data/qdrant/
 data/alphamissense/
 models/
 
+# ClinVar bulk download + large intermediates for golden dataset build
+# (small provenance files like validated_selection.jsonl are kept/committed)
+evals/build/variant_summary.txt
+evals/build/variant_summary.txt.gz
+evals/build/candidates.jsonl
+evals/build/pool.json
+
 # OS
 .DS_Store
 
