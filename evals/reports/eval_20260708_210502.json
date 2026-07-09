@@ -1,0 +1,564 @@
+{
+  "timestamp": "2026-07-08T21:05:02",
+  "dataset_path": "/Users/efy/Documents/appliedAI/variant-audit/evals/golden_dataset.jsonl",
+  "n_dataset": 37,
+  "n_used": 37,
+  "limit": null,
+  "k": 5,
+  "retrieval": {
+    "k": 5,
+    "n": 12,
+    "n_skipped": 1,
+    "skipped_ids": [
+      "syn-001"
+    ],
+    "n_errors": 24,
+    "errors": [
+      {
+        "id": "gv-004",
+        "variant": "rs794728292",
+        "error": "ClinVar esearch failed for variant 'rs794728292'"
+      },
+      {
+        "id": "gv-005",
+        "variant": "rs193922757",
+        "error": "ClinVar esummary failed for variant 'rs193922757'"
+      },
+      {
+        "id": "gv-006",
+        "variant": "rs199473100",
+        "error": "ClinVar esummary failed for variant 'rs199473100'"
+      },
+      {
+        "id": "gv-007",
+        "variant": "rs34830471",
+        "error": "ClinVar esummary failed for variant 'rs34830471'"
+      },
+      {
+        "id": "gv-008",
+        "variant": "rs1800503",
+        "error": "ClinVar esearch failed for variant 'rs1800503'"
+      },
+      {
+        "id": "gv-010",
+        "variant": "rs45550632",
+        "error": "ClinVar esummary failed for variant 'rs45550632'"
+      },
+      {
+        "id": "gv-012",
+        "variant": "rs1028580",
+        "error": "ClinVar esummary failed for variant 'rs1028580'"
+      },
+      {
+        "id": "gv-013",
+        "variant": "rs2153826963",
+        "error": "ClinVar esearch failed for variant 'rs2153826963'"
+      },
+      {
+        "id": "gv-014",
+        "variant": "rs193922149",
+        "error": "ClinVar esearch failed for variant 'rs193922149'"
+      },
+      {
+        "id": "gv-016",
+        "variant": "rs397508070",
+        "error": "ClinVar esummary failed for variant 'rs397508070'"
+      },
+      {
+        "id": "gv-017",
+        "variant": "rs1672560841",
+        "error": "ClinVar esearch failed for variant 'rs1672560841'"
+      },
+      {
+        "id": "gv-020",
+        "variant": "rs2269648",
+        "error": "ClinVar esearch failed for variant 'rs2269648'"
+      },
+      {
+        "id": "gv-022",
+        "variant": "rs765993846",
+        "error": "ClinVar esummary failed for variant 'rs765993846'"
+      },
+      {
+        "id": "gv-023",
+        "variant": "rs200085496",
+        "error": "ClinVar esearch failed for variant 'rs200085496'"
+      },
+      {
+        "id": "gv-024",
+        "variant": "rs2514679999",
+        "error": "ClinVar esearch failed for variant 'rs2514679999'"
+      },
+      {
+        "id": "gv-026",
+        "variant": "rs879254928",
+        "error": "ClinVar esummary failed for variant 'rs879254928'"
+      },
+      {
+        "id": "gv-027",
+        "variant": "rs72658858",
+        "error": "ClinVar esearch failed for variant 'rs72658858'"
+      },
+      {
+        "id": "gv-028",
+        "variant": "rs778528329",
+        "error": "ClinVar esearch failed for variant 'rs778528329'"
+      },
+      {
+        "id": "gv-030",
+        "variant": "rs1553331600",
+        "error": "ClinVar esummary failed for variant 'rs1553331600'"
+      },
+      {
+        "id": "gv-032",
+        "variant": "rs1554300806",
+        "error": "ClinVar esearch failed for variant 'rs1554300806'"
+      },
+      {
+        "id": "gv-033",
+        "variant": "rs1554303870",
+        "error": "ClinVar esummary failed for variant 'rs1554303870'"
+      },
+      {
+        "id": "gv-034",
+        "variant": "rs755704180",
+        "error": "ClinVar esummary failed for variant 'rs755704180'"
+      },
+      {
+        "id": "gv-035",
+        "variant": "rs111246617",
+        "error": "ClinVar esummary failed for variant 'rs111246617'"
+      },
+      {
+        "id": "gv-036",
+        "variant": "rs367594943",
+        "error": "ClinVar esummary failed for variant 'rs367594943'"
+      }
+    ],
+    "recall_at_k": 1.0,
+    "mrr": 0.8333333333333334,
+    "rows": [
+      {
+        "id": "gv-001",
+        "variant": "rs2149808371",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-002",
+        "variant": "rs886040763",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-003",
+        "variant": "rs431825307",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-009",
+        "variant": "rs2274083",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-011",
+        "variant": "rs7151241",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 2
+      },
+      {
+        "id": "gv-015",
+        "variant": "rs1114167396",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-018",
+        "variant": "rs2151538116",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-019",
+        "variant": "rs9332618",
+        "evidence_type": "population_frequency",
+        "expected_criteria": [
+          "BA1",
+          "BS1"
+        ],
+        "hit": true,
+        "rank": 2
+      },
+      {
+        "id": "gv-021",
+        "variant": "rs57637273",
+        "evidence_type": "population_frequency",
+        "expected_criteria": [
+          "BA1",
+          "BS1"
+        ],
+        "hit": true,
+        "rank": 2
+      },
+      {
+        "id": "gv-025",
+        "variant": "rs879254816",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 2
+      },
+      {
+        "id": "gv-029",
+        "variant": "rs63750659",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-031",
+        "variant": "rs786201688",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 1
+      }
+    ]
+  },
+  "classification": {
+    "n": 35,
+    "n_errors": 2,
+    "n_unparseable": 0,
+    "unparseable_rows": [],
+    "accuracy": 0.9142857142857143,
+    "accuracy_ci_95": {
+      "lo": 0.7762072603410349,
+      "hi": 0.9704176317330301
+    },
+    "harm_weighted_cost_mean": 0.4,
+    "harm_weighted_cost_total": 14,
+    "confusion_matrix": {
+      "P": {
+        "P": 11,
+        "VUS": 0,
+        "B": 1
+      },
+      "VUS": {
+        "P": 2,
+        "VUS": 9,
+        "B": 0
+      },
+      "B": {
+        "P": 0,
+        "VUS": 0,
+        "B": 12
+      }
+    },
+    "abstention": {
+      "n": 7,
+      "correct": 4,
+      "accuracy": 0.5714285714285714
+    },
+    "rows": [
+      {
+        "id": "gv-001",
+        "variant": "rs2149808371",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-002",
+        "variant": "rs886040763",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-003",
+        "variant": "rs431825307",
+        "gold": "P",
+        "predicted": "B",
+        "correct": false
+      },
+      {
+        "id": "gv-004",
+        "variant": "rs794728292",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-005",
+        "variant": "rs193922757",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-006",
+        "variant": "rs199473100",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-007",
+        "variant": "rs34830471",
+        "gold": "B",
+        "predicted": "B",
+        "correct": true
+      },
+      {
+        "id": "gv-008",
+        "variant": "rs1800503",
+        "gold": "B",
+        "predicted": "B",
+        "correct": true
+      },
+      {
+        "id": "gv-009",
+        "variant": "rs2274083",
+        "gold": "B",
+        "predicted": "B",
+        "correct": true
+      },
+      {
+        "id": "gv-010",
+        "variant": "rs45550632",
+        "gold": "B",
+        "predicted": "B",
+        "correct": true
+      },
+      {
+        "id": "gv-011",
+        "variant": "rs7151241",
+        "gold": "B",
+        "predicted": "B",
+        "correct": true
+      },
+      {
+        "id": "gv-012",
+        "variant": "rs1028580",
+        "gold": "B",
+        "predicted": "B",
+        "correct": true
+      },
+      {
+        "id": "gv-013",
+        "variant": "rs2153826963",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-014",
+        "variant": "rs193922149",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-015",
+        "variant": "rs1114167396",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-016",
+        "variant": "rs397508070",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-017",
+        "variant": "rs1672560841",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-018",
+        "variant": "rs2151538116",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-019",
+        "variant": "rs9332618",
+        "gold": "B",
+        "predicted": "B",
+        "correct": true
+      },
+      {
+        "id": "gv-020",
+        "variant": "rs2269648",
+        "gold": "B",
+        "predicted": "B",
+        "correct": true
+      },
+      {
+        "id": "gv-021",
+        "variant": "rs57637273",
+        "gold": "B",
+        "predicted": "B",
+        "correct": true
+      },
+      {
+        "id": "gv-022",
+        "variant": "rs765993846",
+        "gold": "B",
+        "predicted": "B",
+        "correct": true
+      },
+      {
+        "id": "gv-023",
+        "variant": "rs200085496",
+        "gold": "B",
+        "predicted": "B",
+        "correct": true
+      },
+      {
+        "id": "gv-024",
+        "variant": "rs2514679999",
+        "gold": "B",
+        "predicted": "B",
+        "correct": true
+      },
+      {
+        "id": "gv-025",
+        "variant": "rs879254816",
+        "gold": "VUS",
+        "predicted": "P",
+        "correct": false
+      },
+      {
+        "id": "gv-026",
+        "variant": "rs879254928",
+        "gold": "VUS",
+        "predicted": "VUS",
+        "correct": true
+      },
+      {
+        "id": "gv-027",
+        "variant": "rs72658858",
+        "gold": "VUS",
+        "predicted": "VUS",
+        "correct": true
+      },
+      {
+        "id": "gv-028",
+        "variant": "rs778528329",
+        "gold": "VUS",
+        "predicted": "VUS",
+        "correct": true
+      },
+      {
+        "id": "gv-029",
+        "variant": "rs63750659",
+        "gold": "VUS",
+        "predicted": "VUS",
+        "correct": true
+      },
+      {
+        "id": "gv-031",
+        "variant": "rs786201688",
+        "gold": "VUS",
+        "predicted": "VUS",
+        "correct": true
+      },
+      {
+        "id": "gv-032",
+        "variant": "rs1554300806",
+        "gold": "VUS",
+        "predicted": "VUS",
+        "correct": true
+      },
+      {
+        "id": "gv-033",
+        "variant": "rs1554303870",
+        "gold": "VUS",
+        "predicted": "VUS",
+        "correct": true
+      },
+      {
+        "id": "gv-035",
+        "variant": "rs111246617",
+        "gold": "VUS",
+        "predicted": "VUS",
+        "correct": true
+      },
+      {
+        "id": "gv-036",
+        "variant": "rs367594943",
+        "gold": "VUS",
+        "predicted": "VUS",
+        "correct": true
+      },
+      {
+        "id": "syn-001",
+        "variant": "rs61735712",
+        "gold": "VUS",
+        "predicted": "P",
+        "correct": false
+      }
+    ],
+    "errors": [
+      {
+        "id": "gv-030",
+        "variant": "rs1553331600",
+        "error": "gnomAD query failed for variant 'rs1553331600'"
+      },
+      {
+        "id": "gv-034",
+        "variant": "rs755704180",
+        "error": "Ensembl VEP call failed for variant 'rs755704180'"
+      }
+    ]
+  }
+}

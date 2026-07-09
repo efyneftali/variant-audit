@@ -1,0 +1,131 @@
+{
+  "timestamp": "2026-07-08T20:44:50",
+  "dataset_path": "/Users/efy/Documents/appliedAI/variant-audit/evals/golden_dataset.jsonl",
+  "n_dataset": 37,
+  "n_used": 5,
+  "limit": 5,
+  "k": 5,
+  "retrieval": {
+    "k": 5,
+    "n": 3,
+    "n_skipped": 0,
+    "skipped_ids": [],
+    "n_errors": 2,
+    "errors": [
+      {
+        "id": "gv-004",
+        "variant": "rs794728292",
+        "error": "ClinVar esearch failed for variant 'rs794728292'"
+      },
+      {
+        "id": "gv-005",
+        "variant": "rs193922757",
+        "error": "ClinVar esearch failed for variant 'rs193922757'"
+      }
+    ],
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "rows": [
+      {
+        "id": "gv-001",
+        "variant": "rs2149808371",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-002",
+        "variant": "rs886040763",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-003",
+        "variant": "rs431825307",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      }
+    ]
+  },
+  "classification": {
+    "n": 3,
+    "n_errors": 2,
+    "n_unparseable": 0,
+    "unparseable_rows": [],
+    "accuracy": 1.0,
+    "accuracy_ci_95": {
+      "lo": 0.4385029682449545,
+      "hi": 1.0
+    },
+    "harm_weighted_cost_mean": 0.0,
+    "harm_weighted_cost_total": 0,
+    "confusion_matrix": {
+      "P": {
+        "P": 3,
+        "VUS": 0,
+        "B": 0
+      },
+      "VUS": {
+        "P": 0,
+        "VUS": 0,
+        "B": 0
+      },
+      "B": {
+        "P": 0,
+        "VUS": 0,
+        "B": 0
+      }
+    },
+    "abstention": {
+      "n": 0,
+      "correct": 0,
+      "accuracy": 0.0
+    },
+    "rows": [
+      {
+        "id": "gv-002",
+        "variant": "rs886040763",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-004",
+        "variant": "rs794728292",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-005",
+        "variant": "rs193922757",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      }
+    ],
+    "errors": [
+      {
+        "id": "gv-001",
+        "variant": "rs2149808371",
+        "error": "gnomAD query failed for variant 'rs2149808371'"
+      },
+      {
+        "id": "gv-003",
+        "variant": "rs431825307",
+        "error": "Ensembl VEP call failed for variant 'rs431825307'"
+      }
+    ]
+  }
+}

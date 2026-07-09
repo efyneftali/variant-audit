@@ -53,6 +53,23 @@ Every tool in this pipeline requires a real, resolvable rsID — an invented var
 
 One hit survived after checking 250 randomly-sampled candidates (gnomAD's public API rate-limits heavily under sustained load, so most of the budget went to retries, not genuine misses): **`rs61735712` (KCNC2)** — ClinVar: "Pathogenic", 0★, no assertion criteria; gnomAD: 7.3% allele frequency. Tagged `source: synthetic`, `gold_label: VUS`, `expected_behavior: abstain`, `synthetic_rule: look_alike_trap_frequency_vs_label`. Kept separate from the real-anchor accuracy numbers (filter on `source` in the harness) since its label reflects a rule-based judgment call (frequency contradicts the assertion), not a ClinVar-adjudicated VUS.
 
+## Retrieval proxy answer key
+Rows carry no per-row "which ACMG criteria are relevant" label, so `evals/run_evals.py`'s
+`eval_retrieval()` uses `evidence_type` as a proxy answer key — each evidence type implies the ACMG
+code(s) that a correct retrieval should surface for it:
+
+| `evidence_type` | expected ACMG code(s) |
+|---|---|
+| `frameshift/LoF` | `PVS1` |
+| `population_frequency` | `BA1`, `BS1` |
+| `missense/computational` | `PP3`, `BP4` |
+
+`conflicting_evidence_sources` (1 row) is deliberately excluded from retrieval scoring: it names a
+disagreement between evidence sources, not a specific criterion, so there's no single code to check
+retrieval against. That row is still exercised by `eval_classification` via its `gold_label: VUS` /
+`expected_behavior: abstain` labels — just not by recall@k/MRR. See `EVIDENCE_TYPE_TO_CRITERIA` in
+`run_evals.py` for the exact mapping the code uses.
+
 ## Versioning
 - Built 2026-07-08 against the ClinVar release fetched that day (see `evals/build/extract_candidates.py` docstring for the exact URL).
 - Total: **37 rows** (36 real ClinVar anchor + 1 rule-mined synthetic) — within the 30–50 target.
