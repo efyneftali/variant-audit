@@ -41,6 +41,7 @@ class GraphState(TypedDict):
     rewrites: int             # evidence-gathering loop counter (bounded)
     gen_retries: int          # regeneration counter (bounded)
     grounded: bool
+    grounded_reason: str      # check_grounded's one-line critique, fed into the retry
     sufficient: bool          # grade_evidence's verdict: enough evidence to classify?
 
 
@@ -246,6 +247,12 @@ def classify(state: GraphState) -> dict:
     check_grounded has looped back here), mirroring gather_evidence's
     `rewrites` discipline -- `state["classification"]` is only empty on the
     very first pass, since every prior classify() call always sets it.
+
+    On a retry, the prior (rejected) attempt AND check_grounded's critique are
+    fed back into the prompt -- otherwise attempt two rebuilds the identical
+    prompt from the identical state and regenerates the identical answer, and
+    the whole correction loop is a placebo. The critique has to feed forward
+    for the loop to actually correct anything.
     """
     variant = state["variant"]
     evidence_text, criteria_text = _build_evidence_and_criteria_text(state)
@@ -255,8 +262,17 @@ def classify(state: GraphState) -> dict:
         f"Variant: {variant}\n\n"
         f"== Evidence ==\n{evidence_text}\n\n"
         f"== Relevant ACMG Criteria ==\n{criteria_text}\n\n"
-        f"Classify this variant."
     )
+    if is_retry:
+        reason = state.get("grounded_reason") or "(no reason recorded)"
+        prompt += (
+            f"== Your previous attempt (rejected as ungrounded) ==\n{state['classification']}\n\n"
+            f"== Why it was rejected ==\n{reason}\n\n"
+            f"Revise your classification to fix this. Cite only ACMG criteria that appear in "
+            f"the criteria above, and assert only facts supported by the evidence above."
+        )
+    else:
+        prompt += "Classify this variant."
     answer = llm.complete(prompt, system=SYSTEM_PROMPT, purpose="generate")
     return {
         "classification": answer,
@@ -283,8 +299,21 @@ def _parse_grounded(verdict: str) -> bool:
     return first_line.startswith("grounded")
 
 
+def _grounded_reason(verdict: str) -> str:
+    """The one-line justification GROUNDED_SYSTEM_PROMPT asks for on line 2+.
+    Falls back to the whole verdict if the model didn't split it onto its own
+    line, so the retry always has *something* to react to."""
+    lines = [line.strip() for line in verdict.strip().splitlines() if line.strip()]
+    return " ".join(lines[1:]) if len(lines) > 1 else verdict.strip()
+
+
 def check_grounded(state: GraphState) -> dict:
-    """Verify every claim in the classification is supported by the evidence/criteria."""
+    """Verify every claim in the classification is supported by the evidence/criteria.
+
+    Returns the verdict AND its reason -- the reason is fed forward into the
+    regeneration retry (see classify), which is the whole point of running the
+    check. Discarding it made the retry loop a no-op.
+    """
     evidence_text, criteria_text = _build_evidence_and_criteria_text(state)
     prompt = (
         f"Variant: {state['variant']}\n\n"
@@ -294,7 +323,7 @@ def check_grounded(state: GraphState) -> dict:
         f"Is every claim in this classification grounded in the evidence and criteria above?"
     )
     verdict = llm.complete(prompt, system=GROUNDED_SYSTEM_PROMPT, purpose="groundedness", max_tokens=64)
-    return {"grounded": _parse_grounded(verdict)}
+    return {"grounded": _parse_grounded(verdict), "grounded_reason": _grounded_reason(verdict)}
 
 
 # --- conditional edges ---
@@ -357,6 +386,7 @@ def ask(variant: str) -> dict:
         "rewrites": 0,
         "gen_retries": 0,
         "grounded": False,
+        "grounded_reason": "",
         "sufficient": False,
     }
     return build_graph().invoke(initial_state)

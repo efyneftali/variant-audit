@@ -271,32 +271,62 @@ class TestClassify:
         assert "Uncertain Significance" in system
         assert "Benign" in system
 
+    def test_first_pass_prompt_has_no_critique_section(self, fake_stack):
+        _, chunks, llm_calls = fake_stack
+        state = {"variant": "rs28897696", "evidence": {"clinvar": {"found": True, "matches": []}}, "criteria": chunks}
+        graph.classify(state)
+        assert "rejected" not in llm_calls["prompt"].lower()
+        assert llm_calls["prompt"].rstrip().endswith("Classify this variant.")
+
+    def test_retry_prompt_feeds_forward_prior_attempt_and_critique(self, fake_stack):
+        # bug-two regression guard: attempt two must differ from attempt one, or
+        # the correction loop can't correct. Both the rejected draft and the
+        # groundedness critique have to reach the retry prompt.
+        _, chunks, llm_calls = fake_stack
+        state = {
+            "variant": "rs28897696",
+            "evidence": {"clinvar": {"found": True, "matches": []}},
+            "criteria": chunks,
+            "classification": "Classification: Pathogenic\nCriteria used: PS3",
+            "grounded_reason": "PS3 was cited but no functional-assay evidence was provided.",
+            "gen_retries": 0,
+        }
+        graph.classify(state)
+        prompt = llm_calls["prompt"]
+        assert "Classification: Pathogenic\nCriteria used: PS3" in prompt  # the rejected draft
+        assert "PS3 was cited but no functional-assay evidence was provided." in prompt  # the critique
+
 
 class TestCheckGrounded:
     def test_grounded_verdict_returns_true(self, monkeypatch):
         monkeypatch.setattr(graph.llm, "complete", lambda *a, **kw: "grounded\nEvery claim matches the evidence.")
         state = {"variant": "rs28897696", "evidence": {"clinvar": {"matches": []}}, "criteria": [], "classification": "Classification: Benign\nCriteria used: none identified"}
         result = graph.check_grounded(state)
-        assert result == {"grounded": True}
+        assert result["grounded"] is True
+        assert result["grounded_reason"] == "Every claim matches the evidence."
 
     def test_ungrounded_verdict_returns_false(self, monkeypatch):
         monkeypatch.setattr(graph.llm, "complete", lambda *a, **kw: "ungrounded\nPM1 was cited but never retrieved.")
         state = {"variant": "rs28897696", "evidence": {"clinvar": {"matches": []}}, "criteria": [], "classification": "Classification: Pathogenic\nCriteria used: PM1"}
         result = graph.check_grounded(state)
-        assert result == {"grounded": False}
+        assert result["grounded"] is False
+        # the critique is captured, not discarded -- classify() feeds it into the retry
+        assert result["grounded_reason"] == "PM1 was cited but never retrieved."
 
     def test_verdict_parsing_is_case_insensitive_and_tolerates_trailing_text(self, monkeypatch):
         monkeypatch.setattr(graph.llm, "complete", lambda *a, **kw: "GROUNDED - yes, fully supported.")
         state = {"variant": "rs28897696", "evidence": {}, "criteria": [], "classification": "x"}
         result = graph.check_grounded(state)
-        assert result == {"grounded": True}
+        assert result["grounded"] is True
 
     def test_ambiguous_verdict_defaults_to_ungrounded(self, monkeypatch):
         # conservative default: if we can't tell, don't let the graph treat it as grounded
         monkeypatch.setattr(graph.llm, "complete", lambda *a, **kw: "unclear, hard to say")
         state = {"variant": "rs28897696", "evidence": {}, "criteria": [], "classification": "x"}
         result = graph.check_grounded(state)
-        assert result == {"grounded": False}
+        assert result["grounded"] is False
+        # single-line verdict: fall back to the whole thing so the retry still has something
+        assert result["grounded_reason"] == "unclear, hard to say"
 
     def test_uses_groundedness_purpose_and_small_max_tokens(self, monkeypatch):
         calls = {}
