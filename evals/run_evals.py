@@ -17,11 +17,14 @@ differently, so measure them apart):
   ROBUSTNESS (Day 14):
     perturb inputs, measure whether quality holds.
 
-Usage (planned):
-    python evals/run_evals.py --skip-generation     # retrieval+classification only (cheap)
-    python evals/run_evals.py                        # full run
+Usage:
+    python evals/run_evals.py --limit 5              # smoke test on 5 rows first (fast)
+    python evals/run_evals.py --skip-generation       # retrieval+classification only (cheap)
+    python evals/run_evals.py                         # full run (calls the agent per variant -- slow)
 
-TODO(day-12): a JSON report tying eval_retrieval + eval_classification together.
+Every run drops a timestamped report in evals/reports/ -- never overwritten, so
+a later "did this prompt change help" comparison is a diff between two files.
+
 TODO(day-13): eval_generation_judge + calibration tracking.
 TODO(day-14): eval_robustness + statistical (multi-run) variance.
 """
@@ -30,6 +33,7 @@ import argparse
 import json
 import math
 import sys
+from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -118,6 +122,14 @@ def eval_retrieval(dataset: list[dict], k: int = 5) -> dict:
     EVIDENCE_TYPE_TO_CRITERIA (no per-row "relevant criterion" label exists).
     Rows whose evidence_type isn't in that map are skipped, not scored as
     misses -- there's no defined answer to check against.
+
+    get_clinvar_record deliberately raises (not a graceful {"found": False})
+    on a real API failure -- network error, timeout, rate limit -- as opposed
+    to a genuinely-unknown variant (see mcp_tools/clinvar.py). NCBI's eutils
+    rate-limits under sustained load (see DATASET.md's build notes -- this bit
+    the dataset build too), so a live run WILL hit this. One bad row is
+    isolated into `errors`, same as eval_classification, rather than crashing
+    the whole retrieval pass.
     """
     scored_rows = [row for row in dataset if row.get("evidence_type") in EVIDENCE_TYPE_TO_CRITERIA]
     skipped_ids = [row["id"] for row in dataset if row.get("evidence_type") not in EVIDENCE_TYPE_TO_CRITERIA]
@@ -125,13 +137,18 @@ def eval_retrieval(dataset: list[dict], k: int = 5) -> dict:
     hits = 0
     reciprocal_ranks = []
     rows_out = []
+    errors = []
 
     for row in scored_rows:
         variant = row["variant"]
         expected = EVIDENCE_TYPE_TO_CRITERIA[row["evidence_type"]]
-        clinvar_record = graph.get_clinvar_record(variant)
-        query = _retrieval_query(variant, clinvar_record)
-        chunks = graph.semantic_search(query, top_k=k)
+        try:
+            clinvar_record = graph.get_clinvar_record(variant)
+            query = _retrieval_query(variant, clinvar_record)
+            chunks = graph.semantic_search(query, top_k=k)
+        except Exception as exc:  # noqa: BLE001 - live network calls, isolate one bad row
+            errors.append({"id": row["id"], "variant": variant, "error": str(exc)})
+            continue
 
         rank = next(
             (i for i, chunk in enumerate(chunks, start=1) if _covers_criterion(chunk.text, expected)),
@@ -151,12 +168,14 @@ def eval_retrieval(dataset: list[dict], k: int = 5) -> dict:
             }
         )
 
-    n = len(scored_rows)
+    n = len(rows_out)
     return {
         "k": k,
         "n": n,
         "n_skipped": len(skipped_ids),
         "skipped_ids": skipped_ids,
+        "n_errors": len(errors),
+        "errors": errors,
         "recall_at_k": hits / n if n else 0.0,
         "mrr": sum(reciprocal_ranks) / n if n else 0.0,
         "rows": rows_out,
@@ -294,14 +313,95 @@ def eval_robustness(dataset: list[dict]) -> dict:
     raise NotImplementedError("TODO(day-14): perturb, re-run, report stability")
 
 
+def _print_scorecard(report: dict) -> None:
+    print("=" * 60)
+    print(f"variant-audit eval report -- {report['timestamp']}")
+    limit_note = f" (--limit {report['limit']})" if report["limit"] else ""
+    print(f"dataset: {report['n_used']}/{report['n_dataset']} rows{limit_note}")
+    print("=" * 60)
+
+    retrieval = report.get("retrieval")
+    if retrieval:
+        print(f"\n-- retrieval (k={retrieval['k']}) --")
+        print(
+            f"recall@{retrieval['k']}: {retrieval['recall_at_k']:.3f}   "
+            f"MRR: {retrieval['mrr']:.3f}   "
+            f"n={retrieval['n']} ({retrieval['n_skipped']} skipped, no answer key)"
+        )
+        if retrieval["n_errors"]:
+            ids = [row["id"] for row in retrieval["errors"]]
+            print(f"ERRORS (skipped, not scored): {retrieval['n_errors']} row(s) -- {ids}")
+
+    classification = report.get("classification")
+    if classification:
+        acc = classification["accuracy"]
+        ci = classification["accuracy_ci_95"]
+        print("\n-- classification --")
+        print(f"accuracy: {acc:.3f}, 95% CI [{ci['lo']:.3f}, {ci['hi']:.3f}], n={classification['n']}")
+        print(
+            f"harm-weighted cost: {classification['harm_weighted_cost_mean']:.3f} mean "
+            f"/ {classification['harm_weighted_cost_total']} total"
+        )
+        ab = classification["abstention"]
+        print(f"abstention (expected_behavior=abstain): {ab['correct']}/{ab['n']} correct ({ab['accuracy']:.3f})")
+        if classification["n_unparseable"]:
+            ids = [row["id"] for row in classification["unparseable_rows"]]
+            print(f"UNPARSEABLE: {classification['n_unparseable']} row(s) -- {ids}")
+        if classification["n_errors"]:
+            ids = [row["id"] for row in classification["errors"]]
+            print(f"ERRORS (skipped, not scored): {classification['n_errors']} row(s) -- {ids}")
+
+        print("\nconfusion matrix (rows=gold, cols=predicted):")
+        print("        " + "".join(f"{p:>6}" for p in LABELS))
+        for gold in LABELS:
+            row = classification["confusion_matrix"][gold]
+            print(f"  {gold:>4}  " + "".join(f"{row[pred]:>6}" for pred in LABELS))
+    print()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--skip-generation", action="store_true")
-    parser.add_argument("--k", type=int, default=5)
+    parser.add_argument("--skip-generation", action="store_true", help="skip the LLM-judge generation eval")
+    parser.add_argument("--k", type=int, default=5, help="top-k for retrieval")
+    parser.add_argument(
+        "--limit", type=int, default=None,
+        help="only run the first N dataset rows -- smoke test the pipeline before a full run",
+    )
     args = parser.parse_args()
-    # TODO: run the sections, assemble a report dict, write REPORTS/eval_<ts>.json,
-    #       print a scorecard. Treat reports like test results — keep the history.
-    raise NotImplementedError("TODO(day-12+): orchestrate the eval run and write a report")
+
+    full_dataset = load_dataset()
+    dataset = full_dataset[: args.limit] if args.limit else full_dataset
+    print(f"Loaded {len(full_dataset)} rows" + (f", using first {len(dataset)} (--limit)" if args.limit else "") + ".")
+
+    print("Running eval_retrieval (cheap, no LLM calls)...")
+    retrieval_result = eval_retrieval(dataset, k=args.k)
+
+    print(f"Running eval_classification ({len(dataset)} rows through the full agent loop -- this is the slow part)...")
+    classification_result = eval_classification(dataset)
+
+    report = {
+        "timestamp": datetime.now().isoformat(timespec="seconds"),
+        "dataset_path": str(DATASET),
+        "n_dataset": len(full_dataset),
+        "n_used": len(dataset),
+        "limit": args.limit,
+        "k": args.k,
+        "retrieval": retrieval_result,
+        "classification": classification_result,
+    }
+
+    if not args.skip_generation:
+        try:
+            report["generation"] = eval_generation_judge(dataset)
+        except NotImplementedError:
+            print("eval_generation_judge isn't implemented yet (Day 13) -- skipped.")
+
+    REPORTS.mkdir(exist_ok=True)
+    report_path = REPORTS / f"eval_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    report_path.write_text(json.dumps(report, indent=2))
+
+    _print_scorecard(report)
+    print(f"Report written to {report_path}")
 
 
 if __name__ == "__main__":
