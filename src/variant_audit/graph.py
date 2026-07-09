@@ -156,26 +156,85 @@ def grade_evidence(state: GraphState) -> dict:
     return {"sufficient": _parse_sufficiency(verdict)}
 
 
+def _format_clinvar_evidence(evidence: dict, variant: str) -> str:
+    matches = evidence.get("clinvar", {}).get("matches", [])
+    if not matches:
+        return f"No ClinVar record found for {variant}."
+    return "\n\n".join(
+        f"HGVS: {m['hgvs']}\n"
+        f"ClinVar significance: {m['clinical_significance']}\n"
+        f"Review status: {m['review_status']}"
+        for m in matches
+    )
+
+
+def _format_gnomad_evidence(evidence: dict) -> str:
+    gnomad = evidence.get("gnomad", {})
+    if not gnomad.get("found"):
+        return "Not found in gnomAD (absent from the population database)."
+    af = gnomad.get("allele_freq")
+    if af is None:
+        return "Present in gnomAD; allele frequency unavailable."
+    return f"Allele frequency: {af}"
+
+
+def _format_ensembl_evidence(evidence: dict) -> str:
+    ensembl = evidence.get("ensembl", {})
+    if not ensembl.get("found"):
+        return "No predicted-consequence record."
+    line = f"Most severe consequence: {ensembl.get('most_severe_consequence')} (impact={ensembl.get('impact')})"
+    gene = ensembl.get("gene_symbol")
+    return f"{line}\nGene: {gene}" if gene else line
+
+
+def _format_ucsc_evidence(evidence: dict) -> str:
+    ucsc = evidence.get("ucsc", {})
+    if not ucsc.get("found"):
+        return "No conservation data."
+    return f"phyloP={ucsc.get('phylop')}, phastCons={ucsc.get('phastcons')}"
+
+
+def _format_alphamissense_evidence(evidence: dict) -> str:
+    am = evidence.get("alphamissense", {})
+    if not am.get("applicable"):
+        return "Not applicable (non-missense variant)."
+    if not am.get("found"):
+        return "Missense variant, but not present in the precomputed AlphaMissense table."
+    return f"Score: {am.get('am_pathogenicity')} (class={am.get('am_class')})"
+
+
 def _build_evidence_and_criteria_text(state: GraphState) -> tuple[str, str]:
-    """Format the ClinVar evidence + retrieved ACMG criteria the same way for
-    both classify() and check_grounded() -- the groundedness check has to see
-    exactly what classify() saw, or it's grading against the wrong context."""
+    """Format ALL FIVE evidence sources + retrieved ACMG criteria the same way
+    for both classify() and check_grounded() -- the groundedness check has to
+    see exactly what classify() saw, or it's grading against the wrong context.
+
+    ClinVar is presented as one submitter's assertion among five sources, not
+    the headline: it's a legitimate evidence input (see DATASET.md), but the
+    model must weigh it against frequency / consequence / conservation /
+    computational signals rather than parrot it. Crucially the other four
+    sources are ALWAYS included even when ClinVar is thin or absent -- otherwise
+    a variant like the adversarial syn-001 (empty ClinVar, 7.3% gnomAD
+    frequency) reaches classify() with a blank evidence block and the model
+    hallucinates a call against nothing. The 7.3% frequency is exactly the fact
+    that should fire BA1/BS1 and force a benign-or-uncertain call."""
+    evidence = state["evidence"]
     variant = state["variant"]
-    matches = state["evidence"].get("clinvar", {}).get("matches", [])
     chunks = state["criteria"]
 
     criteria_text = "\n\n".join(f"[{c.source}]\n{c.text}" for c in chunks)
 
-    if matches:
-        evidence_lines = [
-            f"HGVS: {m['hgvs']}\n"
-            f"ClinVar significance: {m['clinical_significance']}\n"
-            f"Review status: {m['review_status']}"
-            for m in matches
-        ]
-        evidence_text = "\n\n".join(evidence_lines)
-    else:
-        evidence_text = f"No ClinVar record found for {variant}."
+    evidence_text = (
+        f"-- ClinVar (one submitter assertion, not the final answer) --\n"
+        f"{_format_clinvar_evidence(evidence, variant)}\n\n"
+        f"-- Population frequency (gnomAD) --\n"
+        f"{_format_gnomad_evidence(evidence)}\n\n"
+        f"-- Predicted consequence (Ensembl VEP) --\n"
+        f"{_format_ensembl_evidence(evidence)}\n\n"
+        f"-- Conservation (UCSC) --\n"
+        f"{_format_ucsc_evidence(evidence)}\n\n"
+        f"-- Computational pathogenicity (AlphaMissense) --\n"
+        f"{_format_alphamissense_evidence(evidence)}"
+    )
 
     return evidence_text, criteria_text
 
@@ -194,7 +253,7 @@ def classify(state: GraphState) -> dict:
 
     prompt = (
         f"Variant: {variant}\n\n"
-        f"== ClinVar Evidence ==\n{evidence_text}\n\n"
+        f"== Evidence ==\n{evidence_text}\n\n"
         f"== Relevant ACMG Criteria ==\n{criteria_text}\n\n"
         f"Classify this variant."
     )
@@ -209,7 +268,7 @@ GROUNDED_SYSTEM_PROMPT = (
     "You are verifying whether a variant classification is grounded in the evidence "
     "and ACMG criteria it was given — you are not classifying the variant yourself. "
     "Check every specific claim in the classification (the tier called, and each ACMG "
-    "criterion cited) against the ClinVar evidence and ACMG criteria text provided. "
+    "criterion cited) against the evidence and ACMG criteria text provided. "
     "If the classification cites a criterion that isn't in the provided criteria text, "
     "or asserts a fact the evidence doesn't support, that's ungrounded. "
     "Respond with exactly one word on the first line — 'grounded' or 'ungrounded' — "
@@ -230,7 +289,7 @@ def check_grounded(state: GraphState) -> dict:
     prompt = (
         f"Variant: {state['variant']}\n\n"
         f"== Classification to verify ==\n{state['classification']}\n\n"
-        f"== ClinVar Evidence ==\n{evidence_text}\n\n"
+        f"== Evidence ==\n{evidence_text}\n\n"
         f"== Relevant ACMG Criteria ==\n{criteria_text}\n\n"
         f"Is every claim in this classification grounded in the evidence and criteria above?"
     )
