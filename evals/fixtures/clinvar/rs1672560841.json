@@ -1,0 +1,11 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Pathogenic",
+      "hgvs": "NM_000251.3(MSH2):c.329del (p.Lys110fs)",
+      "review_status": "criteria provided, single submitter"
+    }
+  ],
+  "variant": "rs1672560841"
+}

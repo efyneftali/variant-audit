@@ -1,0 +1,16 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Pathogenic",
+      "hgvs": "NM_000088.4(COL1A1):c.2450dup (p.Gly818fs)",
+      "review_status": "criteria provided, single submitter"
+    },
+    {
+      "clinical_significance": "Pathogenic/Likely pathogenic",
+      "hgvs": "NM_000088.4(COL1A1):c.2450del (p.Pro817fs)",
+      "review_status": "criteria provided, multiple submitters, no conflicts"
+    }
+  ],
+  "variant": "rs193922149"
+}

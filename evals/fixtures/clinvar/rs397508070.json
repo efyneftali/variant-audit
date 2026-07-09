@@ -1,0 +1,21 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Pathogenic",
+      "hgvs": "NM_000218.3(KCNQ1):c.1032+1G>T",
+      "review_status": "criteria provided, single submitter"
+    },
+    {
+      "clinical_significance": "Pathogenic",
+      "hgvs": "NM_000218.3(KCNQ1):c.1032+1G>C",
+      "review_status": "criteria provided, single submitter"
+    },
+    {
+      "clinical_significance": "Pathogenic/Likely pathogenic",
+      "hgvs": "NM_000218.3(KCNQ1):c.1032+1G>A",
+      "review_status": "criteria provided, multiple submitters, no conflicts"
+    }
+  ],
+  "variant": "rs397508070"
+}

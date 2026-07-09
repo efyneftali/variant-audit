@@ -1,0 +1,13 @@
+{
+  "allele_string": "C/T",
+  "alt": "T",
+  "chrom": "19",
+  "end": 38565534,
+  "found": true,
+  "gene_symbol": "RYR1",
+  "impact": "LOW",
+  "most_severe_consequence": "synonymous_variant",
+  "ref": "C",
+  "start": 38565534,
+  "variant": "rs2514679999"
+}

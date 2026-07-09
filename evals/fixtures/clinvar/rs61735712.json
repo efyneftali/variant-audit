@@ -1,0 +1,11 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Pathogenic",
+      "hgvs": "NM_139137.4(KCNC2):c.375C>G (p.Cys125Trp)",
+      "review_status": "no assertion criteria provided"
+    }
+  ],
+  "variant": "rs61735712"
+}

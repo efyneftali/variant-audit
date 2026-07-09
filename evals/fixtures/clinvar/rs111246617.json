@@ -1,0 +1,21 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Uncertain significance",
+      "hgvs": "NM_000551.4(VHL):c.5C>A (p.Pro2His)",
+      "review_status": "criteria provided, multiple submitters, no conflicts"
+    },
+    {
+      "clinical_significance": "Uncertain significance",
+      "hgvs": "NM_000551.4(VHL):c.5C>G (p.Pro2Arg)",
+      "review_status": "criteria provided, multiple submitters, no conflicts"
+    },
+    {
+      "clinical_significance": "Conflicting classifications of pathogenicity",
+      "hgvs": "NM_000551.4(VHL):c.5C>T (p.Pro2Leu)",
+      "review_status": "criteria provided, conflicting classifications"
+    }
+  ],
+  "variant": "rs111246617"
+}

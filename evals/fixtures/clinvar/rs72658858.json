@@ -1,0 +1,16 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Uncertain significance",
+      "hgvs": "NM_000527.5(LDLR):c.940G>T (p.Gly314Trp)",
+      "review_status": "criteria provided, single submitter"
+    },
+    {
+      "clinical_significance": "Conflicting classifications of pathogenicity",
+      "hgvs": "NM_000527.5(LDLR):c.940G>A (p.Gly314Arg)",
+      "review_status": "criteria provided, conflicting classifications"
+    }
+  ],
+  "variant": "rs72658858"
+}

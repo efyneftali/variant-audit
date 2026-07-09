@@ -1,0 +1,13 @@
+{
+  "allele_string": "T/C",
+  "alt": "C",
+  "chrom": "14",
+  "end": 94383545,
+  "found": true,
+  "gene_symbol": "SERPINA1",
+  "impact": "MODIFIER",
+  "most_severe_consequence": "5_prime_UTR_variant",
+  "ref": "T",
+  "start": 94383545,
+  "variant": "rs1028580"
+}

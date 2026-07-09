@@ -1,0 +1,9 @@
+{
+  "am_class": "likely_pathogenic",
+  "am_pathogenicity": 0.8681,
+  "applicable": true,
+  "found": true,
+  "protein_variant": "L85V",
+  "transcript_id": "ENST00000231790.6",
+  "variant": "rs63750659"
+}

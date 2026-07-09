@@ -1,0 +1,13 @@
+{
+  "allele_string": "C/A/G/T",
+  "alt": "A",
+  "chrom": "13",
+  "end": 32337832,
+  "found": true,
+  "gene_symbol": "BRCA2",
+  "impact": "HIGH",
+  "most_severe_consequence": "stop_gained",
+  "ref": "C",
+  "start": 32337832,
+  "variant": "rs431825307"
+}

@@ -1,0 +1,13 @@
+{
+  "allele_string": "G/A/C",
+  "alt": "C",
+  "chrom": "12",
+  "end": 75207609,
+  "found": true,
+  "gene_symbol": "KCNC2",
+  "impact": "MODERATE",
+  "most_severe_consequence": "missense_variant",
+  "ref": "G",
+  "start": 75207609,
+  "variant": "rs61735712"
+}

@@ -17,10 +17,17 @@ differently, so measure them apart):
   ROBUSTNESS (Day 14):
     perturb inputs, measure whether quality holds.
 
+The five external evidence tools (ClinVar/gnomAD/Ensembl/UCSC/AlphaMissense) are
+served from frozen fixtures via evals/replay.py, NOT the live network -- that's
+what makes this number trustworthy (see VA-39). Live runs used to lose rows to
+NCBI/gnomAD rate limits and score recall@k over whatever survived. Freeze the
+fixtures once with --record; every run after is offline and reproducible.
+
 Usage:
-    python evals/run_evals.py --limit 5              # smoke test on 5 rows first (fast)
+    python evals/run_evals.py --record               # one-time: hit the network, freeze fixtures, then score
+    python evals/run_evals.py --limit 5              # smoke test on 5 rows first (fast, offline)
     python evals/run_evals.py --skip-generation       # retrieval+classification only (cheap)
-    python evals/run_evals.py                         # full run (calls the agent per variant -- slow)
+    python evals/run_evals.py                         # full run, offline against fixtures
 
 Every run drops a timestamped report in evals/reports/ -- never overwritten, so
 a later "did this prompt change help" comparison is a diff between two files.
@@ -38,6 +45,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from evals import replay  # noqa: E402
 from src.variant_audit import graph  # noqa: E402
 
 DATASET = Path(__file__).parent / "golden_dataset.jsonl"
@@ -367,11 +375,23 @@ def main() -> None:
         "--limit", type=int, default=None,
         help="only run the first N dataset rows -- smoke test the pipeline before a full run",
     )
+    parser.add_argument(
+        "--record", action="store_true",
+        help="one-time: hit the live tools for the used rows and (re)freeze fixtures before scoring",
+    )
     args = parser.parse_args()
 
     full_dataset = load_dataset()
     dataset = full_dataset[: args.limit] if args.limit else full_dataset
     print(f"Loaded {len(full_dataset)} rows" + (f", using first {len(dataset)} (--limit)" if args.limit else "") + ".")
+
+    if args.record:
+        # The only path that touches the network. Freeze exactly the rows we're
+        # about to score, so --record --limit N stays self-consistent.
+        replay.record_all([row["variant"] for row in dataset])
+
+    # Every scoring path reads from fixtures: no live tool calls, no dropped rows.
+    replay.install()
 
     print("Running eval_retrieval (cheap, no LLM calls)...")
     retrieval_result = eval_retrieval(dataset, k=args.k)
@@ -385,6 +405,7 @@ def main() -> None:
         "n_dataset": len(full_dataset),
         "n_used": len(dataset),
         "limit": args.limit,
+        "tool_source": "fixtures (record+replay)" if args.record else "fixtures (replay)",
         "k": args.k,
         "retrieval": retrieval_result,
         "classification": classification_result,

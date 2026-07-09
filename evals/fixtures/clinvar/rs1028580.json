@@ -1,0 +1,11 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Benign",
+      "hgvs": "NM_000295.5(SERPINA1):c.-4-304A>G",
+      "review_status": "criteria provided, multiple submitters, no conflicts"
+    }
+  ],
+  "variant": "rs1028580"
+}

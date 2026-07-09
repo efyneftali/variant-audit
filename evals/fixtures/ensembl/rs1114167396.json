@@ -1,0 +1,13 @@
+{
+  "allele_string": "G/-",
+  "alt": "-",
+  "chrom": "17",
+  "end": 50188926,
+  "found": true,
+  "gene_symbol": "COL1A1",
+  "impact": "HIGH",
+  "most_severe_consequence": "frameshift_variant",
+  "ref": "G",
+  "start": 50188926,
+  "variant": "rs1114167396"
+}

@@ -1,0 +1,11 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Likely benign",
+      "hgvs": "NM_000540.3(RYR1):c.13200C>T (p.Gly4400=)",
+      "review_status": "criteria provided, single submitter"
+    }
+  ],
+  "variant": "rs2514679999"
+}

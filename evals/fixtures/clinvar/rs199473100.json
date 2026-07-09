@@ -1,0 +1,11 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Pathogenic/Likely pathogenic",
+      "hgvs": "NM_000335.5(SCN5A):c.1126C>T (p.Arg376Cys)",
+      "review_status": "criteria provided, multiple submitters, no conflicts"
+    }
+  ],
+  "variant": "rs199473100"
+}

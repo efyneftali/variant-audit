@@ -1,0 +1,11 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Benign",
+      "hgvs": "NM_000130.5(F5):c.4972-221C>T",
+      "review_status": "criteria provided, single submitter"
+    }
+  ],
+  "variant": "rs9332618"
+}

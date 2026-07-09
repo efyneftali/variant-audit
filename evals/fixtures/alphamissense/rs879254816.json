@@ -1,0 +1,9 @@
+{
+  "am_class": "likely_pathogenic",
+  "am_pathogenicity": 0.8571,
+  "applicable": true,
+  "found": true,
+  "protein_variant": "K393N",
+  "transcript_id": "ENST00000558518.5",
+  "variant": "rs879254816"
+}

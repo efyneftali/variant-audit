@@ -1,0 +1,11 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Benign",
+      "hgvs": "NM_000257.4(MYH7):c.531-174C>T",
+      "review_status": "criteria provided, multiple submitters, no conflicts"
+    }
+  ],
+  "variant": "rs7151241"
+}

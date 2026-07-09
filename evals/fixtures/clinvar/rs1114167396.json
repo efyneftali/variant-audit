@@ -1,0 +1,11 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Pathogenic",
+      "hgvs": "NM_000088.4(COL1A1):c.3026del (p.Pro1009fs)",
+      "review_status": "criteria provided, single submitter"
+    }
+  ],
+  "variant": "rs1114167396"
+}

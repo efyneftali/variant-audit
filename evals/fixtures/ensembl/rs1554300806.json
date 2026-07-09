@@ -1,0 +1,13 @@
+{
+  "allele_string": "C/G/T",
+  "alt": "G",
+  "chrom": "7",
+  "end": 5995610,
+  "found": true,
+  "gene_symbol": "PMS2",
+  "impact": "MODERATE",
+  "most_severe_consequence": "missense_variant",
+  "ref": "C",
+  "start": 5995610,
+  "variant": "rs1554300806"
+}

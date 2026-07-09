@@ -1,0 +1,21 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Uncertain significance",
+      "hgvs": "NM_000535.7(PMS2):c.525G>C (p.Arg175Ser)",
+      "review_status": "criteria provided, multiple submitters, no conflicts"
+    },
+    {
+      "clinical_significance": "Benign/Likely benign",
+      "hgvs": "NM_000535.7(PMS2):c.525G>A (p.Arg175=)",
+      "review_status": "criteria provided, multiple submitters, no conflicts"
+    },
+    {
+      "clinical_significance": "Uncertain significance",
+      "hgvs": "NM_000535.7(PMS2):c.525G>T (p.Arg175Ser)",
+      "review_status": "criteria provided, multiple submitters, no conflicts"
+    }
+  ],
+  "variant": "rs1554303870"
+}

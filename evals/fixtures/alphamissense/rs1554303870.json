@@ -1,0 +1,9 @@
+{
+  "am_class": "likely_pathogenic",
+  "am_pathogenicity": 0.9558,
+  "applicable": true,
+  "found": true,
+  "protein_variant": "R175S",
+  "transcript_id": "ENST00000265849.12",
+  "variant": "rs1554303870"
+}

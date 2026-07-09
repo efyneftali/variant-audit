@@ -1,0 +1,11 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Pathogenic",
+      "hgvs": "NM_007294.4(BRCA1):c.4878del (p.Asn1626fs)",
+      "review_status": "criteria provided, single submitter"
+    }
+  ],
+  "variant": "rs2153826963"
+}

@@ -1,0 +1,13 @@
+{
+  "allele_string": "C/A/G/T",
+  "alt": "A",
+  "chrom": "13",
+  "end": 48307387,
+  "found": true,
+  "gene_symbol": "RB1",
+  "impact": "HIGH",
+  "most_severe_consequence": "stop_gained",
+  "ref": "C",
+  "start": 48307387,
+  "variant": "rs755704180"
+}

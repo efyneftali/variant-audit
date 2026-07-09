@@ -1,0 +1,13 @@
+{
+  "allele_string": "G/A",
+  "alt": "A",
+  "chrom": "14",
+  "end": 23432043,
+  "found": true,
+  "gene_symbol": "MYH7",
+  "impact": "MODIFIER",
+  "most_severe_consequence": "intron_variant",
+  "ref": "G",
+  "start": 23432043,
+  "variant": "rs7151241"
+}

@@ -1,0 +1,9 @@
+{
+  "am_class": "likely_benign",
+  "am_pathogenicity": 0.1081,
+  "applicable": true,
+  "found": true,
+  "protein_variant": "M303I",
+  "transcript_id": "ENST00000234420.9",
+  "variant": "rs786201688"
+}

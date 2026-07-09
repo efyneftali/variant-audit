@@ -1,0 +1,13 @@
+{
+  "allele_string": "G/A",
+  "alt": "A",
+  "chrom": "1",
+  "end": 169555602,
+  "found": true,
+  "gene_symbol": "F5",
+  "impact": "MODIFIER",
+  "most_severe_consequence": "intron_variant",
+  "ref": "G",
+  "start": 169555602,
+  "variant": "rs57637273"
+}

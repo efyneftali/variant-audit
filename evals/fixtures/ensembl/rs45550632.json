@@ -1,0 +1,13 @@
+{
+  "allele_string": "C/T",
+  "alt": "T",
+  "chrom": "14",
+  "end": 23418481,
+  "found": true,
+  "gene_symbol": "MYH7",
+  "impact": "MODIFIER",
+  "most_severe_consequence": "intron_variant",
+  "ref": "C",
+  "start": 23418481,
+  "variant": "rs45550632"
+}

@@ -1,0 +1,11 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Uncertain significance",
+      "hgvs": "NM_000535.7(PMS2):c.827G>A (p.Cys276Tyr)",
+      "review_status": "criteria provided, multiple submitters, no conflicts"
+    }
+  ],
+  "variant": "rs1554300806"
+}

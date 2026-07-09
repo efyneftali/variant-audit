@@ -1,0 +1,13 @@
+{
+  "allele_string": "-/A",
+  "alt": "A",
+  "chrom": "17",
+  "end": 31325996,
+  "found": true,
+  "gene_symbol": "NF1",
+  "impact": "HIGH",
+  "most_severe_consequence": "stop_gained",
+  "ref": "-",
+  "start": 31325997,
+  "variant": "rs2151538116"
+}

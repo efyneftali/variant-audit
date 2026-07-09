@@ -1,0 +1,13 @@
+{
+  "allele_string": "G/A",
+  "alt": "A",
+  "chrom": "11",
+  "end": 2583546,
+  "found": true,
+  "gene_symbol": "KCNQ1",
+  "impact": "HIGH",
+  "most_severe_consequence": "splice_donor_variant",
+  "ref": "G",
+  "start": 2583546,
+  "variant": "rs397508070"
+}

@@ -1,0 +1,13 @@
+{
+  "allele_string": "A/G",
+  "alt": "G",
+  "chrom": "19",
+  "end": 11113695,
+  "found": true,
+  "gene_symbol": "LDLR",
+  "impact": "HIGH",
+  "most_severe_consequence": "stop_lost",
+  "ref": "A",
+  "start": 11113695,
+  "variant": "rs879254928"
+}

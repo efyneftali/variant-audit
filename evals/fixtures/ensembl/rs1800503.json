@@ -1,0 +1,13 @@
+{
+  "allele_string": "C/A/T",
+  "alt": "A",
+  "chrom": "7",
+  "end": 117536684,
+  "found": true,
+  "gene_symbol": "CFTR",
+  "impact": "MODIFIER",
+  "most_severe_consequence": "intron_variant",
+  "ref": "C",
+  "start": 117536684,
+  "variant": "rs1800503"
+}

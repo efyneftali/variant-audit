@@ -1,0 +1,11 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Pathogenic/Likely pathogenic",
+      "hgvs": "NM_000038.6(APC):c.1409-2del",
+      "review_status": "criteria provided, multiple submitters, no conflicts"
+    }
+  ],
+  "variant": "rs2149808371"
+}

@@ -1,0 +1,9 @@
+{
+  "am_class": "likely_pathogenic",
+  "am_pathogenicity": 0.6667,
+  "applicable": true,
+  "found": true,
+  "protein_variant": "R108H",
+  "transcript_id": "ENST00000256474.2",
+  "variant": "rs367594943"
+}
