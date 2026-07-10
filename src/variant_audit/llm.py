@@ -27,13 +27,14 @@ def complete(prompt: str, system: str = "", *, purpose: str = "generate", max_to
                  "groundedness", "eval_judge", ...). Also used to pick the judge model.
         max_tokens: output cap.
 
-    Should branch on settings.llm_provider:
+    Branches on the provider resolved for `purpose` (see _provider_for):
       - "ollama"    -> call the local Ollama server (see _complete_ollama)
       - "anthropic" -> call the Claude API (see _complete_anthropic)
-    """ 
+    """
+    provider = _provider_for(purpose)
     model = _model_for(purpose)
 
-    if settings.llm_provider == "ollama":
+    if provider == "ollama":
         return _complete_ollama(prompt, system, model, max_tokens)
     return _complete_anthropic(prompt, system, model, max_tokens)
 
@@ -89,6 +90,16 @@ def _complete_anthropic(prompt: str, system: str, model: str, max_tokens: int) -
 _JUDGE_PURPOSES = {"grade", "groundedness", "eval_judge"}
 
 
+def _provider_for(purpose: str) -> str:
+    """Pick the provider: judge purposes use JUDGE_PROVIDER, everything else LLM_PROVIDER.
+
+    JUDGE_PROVIDER defaults to LLM_PROVIDER, so nothing changes unless it's set.
+    Setting JUDGE_PROVIDER=anthropic with LLM_PROVIDER=ollama keeps generation
+    local and free while grading/judging runs on the Claude API.
+    """
+    return settings.judge_provider if purpose in _JUDGE_PURPOSES else settings.llm_provider
+
+
 def _model_for(purpose: str) -> str:
     """Pick the model: a cheaper 'judge' model for grading/judging, else the main model.
 
@@ -96,10 +107,11 @@ def _model_for(purpose: str) -> str:
     classification reasoning -> main model (Sonnet).
     """
     is_judge = purpose in _JUDGE_PURPOSES
+    provider = _provider_for(purpose)
 
-    if settings.llm_provider == "ollama":
+    if provider == "ollama":
         return settings.ollama_judge_model if is_judge else settings.ollama_model
-    if settings.llm_provider == "anthropic":
+    if provider == "anthropic":
         return settings.anthropic_judge_model if is_judge else settings.anthropic_model
 
-    raise ValueError(f"Unknown LLM_PROVIDER: {settings.llm_provider!r}")
+    raise ValueError(f"Unknown provider for purpose {purpose!r}: {provider!r}")
