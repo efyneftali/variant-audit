@@ -1,0 +1,11 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Benign",
+      "hgvs": "NC_000001.11:g.169586812C>T",
+      "review_status": "criteria provided, single submitter"
+    }
+  ],
+  "variant": "rs2269648"
+}

@@ -1,0 +1,16 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Uncertain significance",
+      "hgvs": "NM_000551.4(VHL):c.323G>T (p.Arg108Leu)",
+      "review_status": "criteria provided, single submitter"
+    },
+    {
+      "clinical_significance": "Conflicting classifications of pathogenicity",
+      "hgvs": "NM_000551.4(VHL):c.323G>A (p.Arg108His)",
+      "review_status": "criteria provided, conflicting classifications"
+    }
+  ],
+  "variant": "rs367594943"
+}

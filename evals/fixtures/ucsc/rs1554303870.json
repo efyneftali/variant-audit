@@ -1,0 +1,9 @@
+{
+  "chrom": "7",
+  "end": 6002465,
+  "found": true,
+  "phastcons": 0.92126,
+  "phylop": -0.119425,
+  "start": 6002465,
+  "variant": "rs1554303870"
+}

@@ -1,0 +1,9 @@
+{
+  "am_class": "likely_benign",
+  "am_pathogenicity": 0.0911,
+  "applicable": true,
+  "found": true,
+  "protein_variant": "K241T",
+  "transcript_id": "ENST00000231790.6",
+  "variant": "rs778528329"
+}

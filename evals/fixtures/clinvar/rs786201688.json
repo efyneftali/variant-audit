@@ -1,0 +1,16 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Uncertain significance",
+      "hgvs": "NM_000179.3(MSH6):c.909G>A (p.Met303Ile)",
+      "review_status": "criteria provided, multiple submitters, no conflicts"
+    },
+    {
+      "clinical_significance": "Uncertain significance",
+      "hgvs": "NM_000179.3(MSH6):c.909G>T (p.Met303Ile)",
+      "review_status": "criteria provided, multiple submitters, no conflicts"
+    }
+  ],
+  "variant": "rs786201688"
+}

@@ -1,0 +1,13 @@
+{
+  "allele_string": "G/A/T",
+  "alt": "A",
+  "chrom": "19",
+  "end": 11107514,
+  "found": true,
+  "gene_symbol": "LDLR",
+  "impact": "MODERATE",
+  "most_severe_consequence": "missense_variant",
+  "ref": "G",
+  "start": 11107514,
+  "variant": "rs72658858"
+}

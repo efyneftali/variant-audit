@@ -1,0 +1,13 @@
+{
+  "allele_string": "G/A/C/T",
+  "alt": "A",
+  "chrom": "3",
+  "end": 10142170,
+  "found": true,
+  "gene_symbol": "VHL",
+  "impact": "MODERATE",
+  "most_severe_consequence": "missense_variant",
+  "ref": "G",
+  "start": 10142170,
+  "variant": "rs367594943"
+}

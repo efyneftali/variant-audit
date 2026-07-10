@@ -1,0 +1,13 @@
+{
+  "allele_string": "G/A/C/T",
+  "alt": "A",
+  "chrom": "19",
+  "end": 38444565,
+  "found": true,
+  "gene_symbol": "RYR1",
+  "impact": "MODIFIER",
+  "most_severe_consequence": "intron_variant",
+  "ref": "G",
+  "start": 38444565,
+  "variant": "rs200085496"
+}

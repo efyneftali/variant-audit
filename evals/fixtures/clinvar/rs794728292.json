@@ -1,0 +1,21 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Likely pathogenic",
+      "hgvs": "NM_000138.5(FBN1):c.305G>A (p.Cys102Tyr)",
+      "review_status": "criteria provided, multiple submitters, no conflicts"
+    },
+    {
+      "clinical_significance": "Likely pathogenic",
+      "hgvs": "NM_000138.5(FBN1):c.305G>C (p.Cys102Ser)",
+      "review_status": "no assertion criteria provided"
+    },
+    {
+      "clinical_significance": "Likely pathogenic",
+      "hgvs": "NM_000138.5(FBN1):c.305G>T (p.Cys102Phe)",
+      "review_status": "criteria provided, single submitter"
+    }
+  ],
+  "variant": "rs794728292"
+}

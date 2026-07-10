@@ -1,0 +1,13 @@
+{
+  "allele_string": "A/-",
+  "alt": "-",
+  "chrom": "5",
+  "end": 112827106,
+  "found": true,
+  "gene_symbol": "APC",
+  "impact": "HIGH",
+  "most_severe_consequence": "splice_acceptor_variant",
+  "ref": "A",
+  "start": 112827106,
+  "variant": "rs2149808371"
+}

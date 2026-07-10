@@ -1,0 +1,11 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Benign",
+      "hgvs": "NM_000492.4(CFTR):c.2909-71G>C",
+      "review_status": "criteria provided, multiple submitters, no conflicts"
+    }
+  ],
+  "variant": "rs34830471"
+}

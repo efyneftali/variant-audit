@@ -1,0 +1,13 @@
+{
+  "allele_string": "T/G",
+  "alt": "G",
+  "chrom": "15",
+  "end": 48494184,
+  "found": true,
+  "gene_symbol": "FBN1",
+  "impact": "MODIFIER",
+  "most_severe_consequence": "intron_variant",
+  "ref": "T",
+  "start": 48494184,
+  "variant": "rs765993846"
+}

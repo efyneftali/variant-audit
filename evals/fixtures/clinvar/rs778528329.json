@@ -1,0 +1,16 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Uncertain significance",
+      "hgvs": "NM_000249.4(MLH1):c.722A>C (p.Lys241Thr)",
+      "review_status": "criteria provided, multiple submitters, no conflicts"
+    },
+    {
+      "clinical_significance": "Conflicting classifications of pathogenicity",
+      "hgvs": "NM_000249.4(MLH1):c.722A>G (p.Lys241Arg)",
+      "review_status": "criteria provided, conflicting classifications"
+    }
+  ],
+  "variant": "rs778528329"
+}

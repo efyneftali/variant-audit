@@ -1,0 +1,9 @@
+{
+  "am_class": "likely_benign",
+  "am_pathogenicity": 0.1498,
+  "applicable": true,
+  "found": true,
+  "protein_variant": "C276S",
+  "transcript_id": "ENST00000265849.12",
+  "variant": "rs1554300806"
+}

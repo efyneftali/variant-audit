@@ -1,0 +1,9 @@
+{
+  "am_class": "likely_pathogenic",
+  "am_pathogenicity": 0.8542,
+  "applicable": true,
+  "found": true,
+  "protein_variant": "R376C",
+  "transcript_id": "ENST00000333535.8",
+  "variant": "rs199473100"
+}

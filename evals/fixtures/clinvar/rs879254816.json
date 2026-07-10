@@ -1,0 +1,21 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Pathogenic",
+      "hgvs": "NM_000527.5(LDLR):c.1179G>T (p.Lys393Asn)",
+      "review_status": "criteria provided, single submitter"
+    },
+    {
+      "clinical_significance": "Likely benign",
+      "hgvs": "NM_000527.5(LDLR):c.1179G>A (p.Lys393=)",
+      "review_status": "criteria provided, single submitter"
+    },
+    {
+      "clinical_significance": "Conflicting classifications of pathogenicity",
+      "hgvs": "NM_000527.5(LDLR):c.1179G>C (p.Lys393Asn)",
+      "review_status": "criteria provided, conflicting classifications"
+    }
+  ],
+  "variant": "rs879254816"
+}

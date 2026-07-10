@@ -1,0 +1,9 @@
+{
+  "am_class": "likely_benign",
+  "am_pathogenicity": 0.1283,
+  "applicable": true,
+  "found": true,
+  "protein_variant": "E114G",
+  "transcript_id": "ENST00000382848.5",
+  "variant": "rs2274083"
+}

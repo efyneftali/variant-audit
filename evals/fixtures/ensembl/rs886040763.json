@@ -1,0 +1,13 @@
+{
+  "allele_string": "A/-",
+  "alt": "-",
+  "chrom": "13",
+  "end": 32370417,
+  "found": true,
+  "gene_symbol": "BRCA2",
+  "impact": "HIGH",
+  "most_severe_consequence": "frameshift_variant",
+  "ref": "A",
+  "start": 32370417,
+  "variant": "rs886040763"
+}

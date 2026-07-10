@@ -1,0 +1,13 @@
+{
+  "allele_string": "-/A",
+  "alt": "A",
+  "chrom": "2",
+  "end": 47408518,
+  "found": true,
+  "gene_symbol": "MSH2",
+  "impact": "HIGH",
+  "most_severe_consequence": "frameshift_variant",
+  "ref": "-",
+  "start": 47408519,
+  "variant": "rs1672560841"
+}

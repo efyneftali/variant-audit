@@ -1,0 +1,13 @@
+{
+  "allele_string": "A/C/G",
+  "alt": "C",
+  "chrom": "3",
+  "end": 37014476,
+  "found": true,
+  "gene_symbol": "MLH1",
+  "impact": "MODERATE",
+  "most_severe_consequence": "missense_variant",
+  "ref": "A",
+  "start": 37014476,
+  "variant": "rs778528329"
+}

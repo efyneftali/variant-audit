@@ -1,0 +1,21 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Pathogenic",
+      "hgvs": "NM_000321.3(RB1):c.245C>G (p.Ser82Ter)",
+      "review_status": "criteria provided, multiple submitters, no conflicts"
+    },
+    {
+      "clinical_significance": "Conflicting classifications of pathogenicity",
+      "hgvs": "NM_000321.3(RB1):c.245C>T (p.Ser82Leu)",
+      "review_status": "criteria provided, conflicting classifications"
+    },
+    {
+      "clinical_significance": "Pathogenic",
+      "hgvs": "NM_000321.3(RB1):c.245C>A (p.Ser82Ter)",
+      "review_status": "criteria provided, single submitter"
+    }
+  ],
+  "variant": "rs755704180"
+}

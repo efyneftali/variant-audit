@@ -1,0 +1,11 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Conflicting classifications of pathogenicity",
+      "hgvs": "NM_000527.5(LDLR):c.1519A>G (p.Lys507Glu)",
+      "review_status": "criteria provided, conflicting classifications"
+    }
+  ],
+  "variant": "rs879254928"
+}

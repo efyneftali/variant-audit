@@ -1,0 +1,11 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Pathogenic",
+      "hgvs": "NM_000540.3(RYR1):c.529C>T (p.Arg177Cys)",
+      "review_status": "reviewed by expert panel"
+    }
+  ],
+  "variant": "rs193922757"
+}

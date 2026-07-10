@@ -1,0 +1,13 @@
+{
+  "allele_string": "C/A/G/T",
+  "alt": "A",
+  "chrom": "15",
+  "end": 48610769,
+  "found": true,
+  "gene_symbol": "FBN1",
+  "impact": "MODERATE",
+  "most_severe_consequence": "missense_variant",
+  "ref": "C",
+  "start": 48610769,
+  "variant": "rs794728292"
+}

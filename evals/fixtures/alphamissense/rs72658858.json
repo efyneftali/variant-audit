@@ -1,0 +1,9 @@
+{
+  "am_class": "likely_benign",
+  "am_pathogenicity": 0.2209,
+  "applicable": true,
+  "found": true,
+  "protein_variant": "G314R",
+  "transcript_id": "ENST00000558518.5",
+  "variant": "rs72658858"
+}

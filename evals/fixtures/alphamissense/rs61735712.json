@@ -1,0 +1,9 @@
+{
+  "am_class": "likely_pathogenic",
+  "am_pathogenicity": 0.998,
+  "applicable": true,
+  "found": true,
+  "protein_variant": "C125W",
+  "transcript_id": "ENST00000549446.5",
+  "variant": "rs61735712"
+}

@@ -1,0 +1,13 @@
+{
+  "allele_string": "G/A/C/T",
+  "alt": "A",
+  "chrom": "2",
+  "end": 47798892,
+  "found": true,
+  "gene_symbol": "MSH6",
+  "impact": "MODERATE",
+  "most_severe_consequence": "missense_variant",
+  "ref": "G",
+  "start": 47798892,
+  "variant": "rs786201688"
+}

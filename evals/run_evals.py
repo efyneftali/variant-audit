@@ -17,10 +17,18 @@ differently, so measure them apart):
   ROBUSTNESS (Day 14):
     perturb inputs, measure whether quality holds.
 
+The five external evidence tools (ClinVar/gnomAD/Ensembl/UCSC/AlphaMissense) are
+served from frozen fixtures via evals/replay.py, NOT the live network -- that's
+what makes this number trustworthy (see VA-39). Live runs used to lose rows to
+NCBI/gnomAD rate limits and score recall@k over whatever survived. Freeze the
+fixtures once with --record; every run after is offline and reproducible.
+
 Usage:
-    python evals/run_evals.py --limit 5              # smoke test on 5 rows first (fast)
+    python evals/run_evals.py --record               # one-time: hit the network, freeze fixtures, then score
+    python evals/run_evals.py --limit 5              # smoke test on 5 rows first (fast, offline)
     python evals/run_evals.py --skip-generation       # retrieval+classification only (cheap)
-    python evals/run_evals.py                         # full run (calls the agent per variant -- slow)
+    python evals/run_evals.py                         # full run, offline against fixtures
+    python evals/run_evals.py --samples 5             # 5x per variant: report generation variance (k*N LLM calls)
 
 Every run drops a timestamped report in evals/reports/ -- never overwritten, so
 a later "did this prompt change help" comparison is a diff between two files.
@@ -32,12 +40,15 @@ TODO(day-14): eval_robustness + statistical (multi-run) variance.
 import argparse
 import json
 import math
+import statistics
 import sys
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from evals import replay  # noqa: E402
 from src.variant_audit import graph  # noqa: E402
 
 DATASET = Path(__file__).parent / "golden_dataset.jsonl"
@@ -303,6 +314,127 @@ def eval_classification(dataset: list[dict]) -> dict:
     }
 
 
+def eval_classification_multi(dataset: list[dict], k: int) -> dict:
+    """Run eval_classification k times and report generation-run variance.
+
+    With the five tools frozen to fixtures (VA-39), the agent loop's only
+    remaining source of run-to-run drift is the LLM itself. Repeating each
+    variant k times isolates exactly that jitter -- the thing the Wilson
+    interval structurally can't see. Wilson answers "how much would accuracy
+    move on a different sample of *rows*?"; the across-sample SD here answers
+    "how much does it move on the *same* rows just because the model is
+    stochastic?". They're different uncertainties; we report both side by side.
+
+    Two accuracy numbers, because they answer different questions:
+      - mean_accuracy +/- accuracy_sd: what a single run typically scores and
+        how much any one run can swing. This is the honest point estimate --
+        one run gave 0.811 and another 0.676 off identical fixtures.
+      - majority_vote_accuracy: score each variant by its modal label across the
+        k samples, then take accuracy over those. Answers "if I let the model
+        vote with itself, how good is it?" -- robust to single-sample flips.
+
+    Per-variant it also partitions every row into stable-correct / stable-wrong
+    / unstable (a coin-flip across samples) -- the rigorous, at-scale version of
+    the by-hand abstention partition (a stable-wrong row needs a better model; a
+    flip is a consistency problem).
+    """
+    runs = [eval_classification(dataset) for _ in range(k)]
+
+    # variant id -> the k predicted labels, in run order (raw per-sample outputs,
+    # kept so any specific sample stays auditable from the report).
+    per_item: dict[str, dict] = {}
+    for run in runs:
+        for row in run["rows"]:
+            entry = per_item.setdefault(
+                row["id"],
+                {"id": row["id"], "variant": row["variant"], "gold": row["gold"], "predictions": []},
+            )
+            entry["predictions"].append(row["predicted"])
+
+    per_item_rows = []
+    majority_confusion = {gold: {pred: 0 for pred in LABELS} for gold in LABELS}
+    stable_correct = stable_wrong = unstable = 0
+    majority_correct = 0
+
+    for entry in per_item.values():
+        preds = entry["predictions"]
+        gold = entry["gold"]
+        # modal label; Counter breaks count ties by first-seen (run order).
+        modal = Counter(preds).most_common(1)[0][0]
+        correct_count = sum(p == gold for p in preds)
+        is_stable = len(set(preds)) == 1
+        is_majority_correct = modal == gold
+
+        majority_correct += is_majority_correct
+        if is_stable and is_majority_correct:
+            stable_correct += 1
+        elif is_stable:
+            stable_wrong += 1
+        else:
+            unstable += 1
+        # majority-vote confusion only over real P/VUS/B modal calls (an
+        # UNPARSEABLE modal label has no cell, same rule as eval_classification).
+        if gold in majority_confusion and modal in LABELS:
+            majority_confusion[gold][modal] += 1
+
+        per_item_rows.append(
+            {
+                "id": entry["id"],
+                "variant": entry["variant"],
+                "gold": gold,
+                "predictions": preds,
+                "correct_count": correct_count,
+                "k": len(preds),
+                "majority_label": modal,
+                "majority_correct": is_majority_correct,
+                "stable": is_stable,
+            }
+        )
+
+    per_run_accuracies = [run["accuracy"] for run in runs]
+    n_items = len(per_item_rows)
+    mean_accuracy = statistics.fmean(per_run_accuracies) if per_run_accuracies else 0.0
+    # sample SD (needs k>=2); a single sample has no spread to report.
+    accuracy_sd = statistics.stdev(per_run_accuracies) if len(per_run_accuracies) > 1 else 0.0
+    majority_vote_accuracy = majority_correct / n_items if n_items else 0.0
+    # Wilson stays at the true row count (n_items), reported on the mean accuracy
+    # -- it's the sampling CI, deliberately NOT inflated to k*n as if repeats
+    # were independent rows.
+    ci_lo, ci_hi = wilson_ci(round(mean_accuracy * n_items), n_items)
+
+    return {
+        "k": k,
+        "n": n_items,
+        "per_run_accuracies": per_run_accuracies,
+        "mean_accuracy": mean_accuracy,
+        "accuracy_sd": accuracy_sd,
+        "accuracy_ci_95": {"lo": ci_lo, "hi": ci_hi},
+        "majority_vote_accuracy": majority_vote_accuracy,
+        "harm_weighted_cost_mean_over_runs": statistics.fmean(
+            run["harm_weighted_cost_mean"] for run in runs
+        ) if runs else 0.0,
+        "abstention_accuracy_mean_over_runs": statistics.fmean(
+            run["abstention"]["accuracy"] for run in runs
+        ) if runs else 0.0,
+        "n_errors_per_run": [run["n_errors"] for run in runs],
+        "n_unparseable_per_run": [run["n_unparseable"] for run in runs],
+        "stability": {
+            "stable_correct": stable_correct,
+            "stable_wrong": stable_wrong,
+            "unstable": unstable,
+            "unstable_ids": [r["id"] for r in per_item_rows if not r["stable"]],
+            "stable_wrong_ids": [
+                r["id"] for r in per_item_rows if r["stable"] and not r["majority_correct"]
+            ],
+        },
+        "majority_confusion_matrix": majority_confusion,
+        "per_item": per_item_rows,
+        # a representative single run, so the report keeps the classic
+        # classification block (confusion matrix etc.) alongside the samples view.
+        "representative_run": runs[0] if runs else None,
+    }
+
+
 def eval_generation_judge(dataset: list[dict]) -> dict:
     """LLM-as-judge faithfulness/relevance. Track judge–human agreement (kappa)."""
     raise NotImplementedError("TODO(day-13): judge outputs; compare to your hand-labels")
@@ -356,7 +488,43 @@ def _print_scorecard(report: dict) -> None:
         for gold in LABELS:
             row = classification["confusion_matrix"][gold]
             print(f"  {gold:>4}  " + "".join(f"{row[pred]:>6}" for pred in LABELS))
+
+    _print_samples(report.get("classification_samples"))
     print()
+
+
+def _print_samples(samples: dict | None) -> None:
+    """Print the multi-sample generation-variance block, when --samples k>1."""
+    if not samples:
+        return
+    ci = samples["accuracy_ci_95"]
+    per_run = ", ".join(f"{a:.3f}" for a in samples["per_run_accuracies"])
+    print(f"\n-- classification: generation variance (k={samples['k']} samples/variant) --")
+    print(
+        f"mean accuracy: {samples['mean_accuracy']:.3f} +/- {samples['accuracy_sd']:.3f} SD "
+        f"(across-sample); per-run [{per_run}]"
+    )
+    print(f"Wilson 95% CI [{ci['lo']:.3f}, {ci['hi']:.3f}] (sampling over n={samples['n']} rows -- different question than SD)")
+    print(f"majority-vote accuracy: {samples['majority_vote_accuracy']:.3f} (modal label per variant)")
+    print(
+        f"harm-weighted cost: {samples['harm_weighted_cost_mean_over_runs']:.3f} mean-of-run-means   "
+        f"abstention: {samples['abstention_accuracy_mean_over_runs']:.3f} mean"
+    )
+    st = samples["stability"]
+    print(
+        f"stability: {st['stable_correct']} stable-correct, {st['stable_wrong']} stable-wrong, "
+        f"{st['unstable']} unstable (coin-flip) of {samples['n']}"
+    )
+    if st["stable_wrong_ids"]:
+        print(f"  stable-wrong (need a better model): {st['stable_wrong_ids']}")
+    if st["unstable_ids"]:
+        print(f"  unstable (consistency problem): {st['unstable_ids']}")
+
+    print("\nmajority-vote confusion matrix (rows=gold, cols=modal predicted):")
+    print("        " + "".join(f"{p:>6}" for p in LABELS))
+    for gold in LABELS:
+        row = samples["majority_confusion_matrix"][gold]
+        print(f"  {gold:>4}  " + "".join(f"{row[pred]:>6}" for pred in LABELS))
 
 
 def main() -> None:
@@ -367,17 +535,45 @@ def main() -> None:
         "--limit", type=int, default=None,
         help="only run the first N dataset rows -- smoke test the pipeline before a full run",
     )
+    parser.add_argument(
+        "--record", action="store_true",
+        help="one-time: hit the live tools for the used rows and (re)freeze fixtures before scoring",
+    )
+    parser.add_argument(
+        "--samples", type=int, default=1, metavar="K",
+        help="run classification K times per variant (3-5) to measure generation variance -- "
+             "k*N LLM calls, so opt-in; default 1",
+    )
     args = parser.parse_args()
+    if args.samples < 1:
+        parser.error("--samples must be >= 1")
 
     full_dataset = load_dataset()
     dataset = full_dataset[: args.limit] if args.limit else full_dataset
     print(f"Loaded {len(full_dataset)} rows" + (f", using first {len(dataset)} (--limit)" if args.limit else "") + ".")
 
+    if args.record:
+        # The only path that touches the network. Freeze exactly the rows we're
+        # about to score, so --record --limit N stays self-consistent.
+        replay.record_all([row["variant"] for row in dataset])
+
+    # Every scoring path reads from fixtures: no live tool calls, no dropped rows.
+    replay.install()
+
     print("Running eval_retrieval (cheap, no LLM calls)...")
     retrieval_result = eval_retrieval(dataset, k=args.k)
 
-    print(f"Running eval_classification ({len(dataset)} rows through the full agent loop -- this is the slow part)...")
-    classification_result = eval_classification(dataset)
+    if args.samples > 1:
+        print(
+            f"Running eval_classification {args.samples}x per variant "
+            f"({len(dataset) * args.samples} agent-loop runs total -- this is the slow, k*N part)..."
+        )
+        samples_result = eval_classification_multi(dataset, k=args.samples)
+        classification_result = samples_result.pop("representative_run")
+    else:
+        print(f"Running eval_classification ({len(dataset)} rows through the full agent loop -- this is the slow part)...")
+        classification_result = eval_classification(dataset)
+        samples_result = None
 
     report = {
         "timestamp": datetime.now().isoformat(timespec="seconds"),
@@ -385,10 +581,14 @@ def main() -> None:
         "n_dataset": len(full_dataset),
         "n_used": len(dataset),
         "limit": args.limit,
+        "tool_source": "fixtures (record+replay)" if args.record else "fixtures (replay)",
         "k": args.k,
+        "samples": args.samples,
         "retrieval": retrieval_result,
         "classification": classification_result,
     }
+    if samples_result is not None:
+        report["classification_samples"] = samples_result
 
     if not args.skip_generation:
         try:

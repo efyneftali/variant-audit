@@ -1,0 +1,16 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Likely benign",
+      "hgvs": "NM_000492.4(CFTR):c.869+11C>A",
+      "review_status": "criteria provided, single submitter"
+    },
+    {
+      "clinical_significance": "Benign",
+      "hgvs": "NM_000492.4(CFTR):c.869+11C>T",
+      "review_status": "criteria provided, multiple submitters, no conflicts"
+    }
+  ],
+  "variant": "rs1800503"
+}

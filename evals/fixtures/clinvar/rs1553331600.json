@@ -1,0 +1,16 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Uncertain significance",
+      "hgvs": "NM_000179.3(MSH6):c.3341T>C (p.Leu1114Pro)",
+      "review_status": "criteria provided, multiple submitters, no conflicts"
+    },
+    {
+      "clinical_significance": "Conflicting classifications of pathogenicity",
+      "hgvs": "NM_000179.3(MSH6):c.3341T>A (p.Leu1114Gln)",
+      "review_status": "criteria provided, conflicting classifications"
+    }
+  ],
+  "variant": "rs1553331600"
+}

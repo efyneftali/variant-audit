@@ -1,0 +1,13 @@
+{
+  "allele_string": "C/T",
+  "alt": "T",
+  "chrom": "1",
+  "end": 169586812,
+  "found": true,
+  "gene_symbol": "F5",
+  "impact": "MODIFIER",
+  "most_severe_consequence": "upstream_gene_variant",
+  "ref": "C",
+  "start": 169586812,
+  "variant": "rs2269648"
+}

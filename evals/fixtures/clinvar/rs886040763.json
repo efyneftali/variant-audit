@@ -1,0 +1,11 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Pathogenic",
+      "hgvs": "NM_000059.4(BRCA2):c.8347del (p.Thr2783fs)",
+      "review_status": "reviewed by expert panel"
+    }
+  ],
+  "variant": "rs886040763"
+}

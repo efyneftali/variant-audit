@@ -1,0 +1,16 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Uncertain significance",
+      "hgvs": "NM_000249.4(MLH1):c.253C>G (p.Leu85Val)",
+      "review_status": "criteria provided, multiple submitters, no conflicts"
+    },
+    {
+      "clinical_significance": "Benign/Likely benign",
+      "hgvs": "NM_000249.4(MLH1):c.253C>T (p.Leu85=)",
+      "review_status": "criteria provided, multiple submitters, no conflicts"
+    }
+  ],
+  "variant": "rs63750659"
+}

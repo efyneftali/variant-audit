@@ -1,0 +1,13 @@
+{
+  "allele_string": "G/A",
+  "alt": "A",
+  "chrom": "3",
+  "end": 38606683,
+  "found": true,
+  "gene_symbol": "SCN5A",
+  "impact": "MODERATE",
+  "most_severe_consequence": "missense_variant",
+  "ref": "G",
+  "start": 38606683,
+  "variant": "rs199473100"
+}

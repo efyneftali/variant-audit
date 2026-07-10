@@ -1,0 +1,13 @@
+{
+  "allele_string": "T/C",
+  "alt": "C",
+  "chrom": "13",
+  "end": 20189241,
+  "found": true,
+  "gene_symbol": "GJB2",
+  "impact": "MODERATE",
+  "most_severe_consequence": "missense_variant",
+  "ref": "T",
+  "start": 20189241,
+  "variant": "rs2274083"
+}

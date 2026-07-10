@@ -1,0 +1,11 @@
+{
+  "found": true,
+  "matches": [
+    {
+      "clinical_significance": "Pathogenic",
+      "hgvs": "NM_001042492.3(NF1):c.5012dup (p.Tyr1671Ter)",
+      "review_status": "criteria provided, single submitter"
+    }
+  ],
+  "variant": "rs2151538116"
+}

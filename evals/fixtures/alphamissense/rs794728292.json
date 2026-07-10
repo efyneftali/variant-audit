@@ -1,0 +1,9 @@
+{
+  "am_class": "likely_pathogenic",
+  "am_pathogenicity": 0.9888,
+  "applicable": true,
+  "found": true,
+  "protein_variant": "C102F",
+  "transcript_id": "ENST00000316623.9",
+  "variant": "rs794728292"
+}
