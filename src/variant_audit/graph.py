@@ -18,6 +18,7 @@ Flow (bounded loops guarantee termination):
   check_grounded    : are the cited criteria actually supported? (purpose="groundedness")
 """
 
+import re
 from typing import TypedDict
 
 from langgraph.graph import END, StateGraph
@@ -292,6 +293,48 @@ GROUNDED_SYSTEM_PROMPT = (
 )
 
 
+# ACMG criterion codes: PVS1, PS1-4, PM1-6, PP1-5, BA1, BS1-4, BP1-7, each
+# optionally carrying a strength modifier (e.g. "PM2_Supporting"). The base
+# code is captured in group 1 so a modifier doesn't change identity.
+_ACMG_CODE_RE = re.compile(
+    r"\b(PVS1|PS\d|PM\d|PP\d|BA1|BS\d|BP\d)(?:_\w+)?\b", re.IGNORECASE
+)
+
+
+def _acmg_codes(text: str) -> set[str]:
+    """Every ACMG criterion code mentioned in `text`, upper-cased and de-modifier'd."""
+    return {m.group(1).upper() for m in _ACMG_CODE_RE.finditer(text)}
+
+
+def _precheck_grounded(classification: str, criteria_text: str) -> dict | None:
+    """Deterministic groundedness gate that runs BEFORE the LLM judge.
+
+    A classification cannot be grounded if it cites an ACMG code that never
+    appears in the retrieved criteria text — that citation was invented, not
+    supported. This is a clear-cut failure plain code can catch, so we short-
+    circuit it and never spend a judge call on it.
+
+    Returns:
+      - {"grounded": False, "grounded_reason": ...} when a cited code is missing
+        (definitively ungrounded — skip the LLM);
+      - None when the check is inconclusive (no codes cited, or every cited code
+        is present) — the caller falls through to the LLM judge, which still has
+        to verify the tier and that asserted facts match the evidence.
+    """
+    cited = _acmg_codes(classification)
+    if not cited:
+        return None
+    missing = sorted(cited - _acmg_codes(criteria_text))
+    if missing:
+        verb = "does" if len(missing) == 1 else "do"
+        reason = (
+            f"Cites ACMG {', '.join(missing)}, which {verb} not appear in the "
+            f"retrieved criteria text."
+        )
+        return {"grounded": False, "grounded_reason": reason}
+    return None
+
+
 def _parse_grounded(verdict: str) -> bool:
     first_line = verdict.strip().splitlines()[0].strip().lower() if verdict.strip() else ""
     if "ungrounded" in first_line:
@@ -313,8 +356,18 @@ def check_grounded(state: GraphState) -> dict:
     Returns the verdict AND its reason -- the reason is fed forward into the
     regeneration retry (see classify), which is the whole point of running the
     check. Discarding it made the retry loop a no-op.
+
+    A deterministic pre-check runs first: if the classification cites an ACMG
+    code absent from the retrieved criteria, that's provably ungrounded and we
+    return without ever calling the judge. Only the cases plain code can't
+    settle reach the LLM.
     """
     evidence_text, criteria_text = _build_evidence_and_criteria_text(state)
+
+    precheck = _precheck_grounded(state["classification"], criteria_text)
+    if precheck is not None:
+        return precheck
+
     prompt = (
         f"Variant: {state['variant']}\n\n"
         f"== Classification to verify ==\n{state['classification']}\n\n"
