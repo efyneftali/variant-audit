@@ -82,7 +82,7 @@ def fake_stack(monkeypatch):
 
     llm_calls = {}
 
-    def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024):
+    def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024, temperature=None, response_schema=None, provider=None, model=None):
         llm_calls["prompt"] = prompt
         llm_calls["system"] = system
         llm_calls["purpose"] = purpose
@@ -323,6 +323,29 @@ class TestCheckGrounded:
         result = graph.check_grounded(state)
         assert result["grounded"] is True
 
+    def test_parses_constrained_json_verdict(self, monkeypatch):
+        # the constrained judge returns the enum+reason JSON object
+        monkeypatch.setattr(
+            graph.llm,
+            "complete",
+            lambda *a, **kw: '{"verdict": "ungrounded", "reason": "PS3 has no functional assay."}',
+        )
+        state = {"variant": "rs28897696", "evidence": {}, "criteria": [], "classification": "x"}
+        result = graph.check_grounded(state)
+        assert result["grounded"] is False
+        assert result["grounded_reason"] == "PS3 has no functional assay."
+
+    def test_parses_grounded_json_verdict(self, monkeypatch):
+        monkeypatch.setattr(
+            graph.llm,
+            "complete",
+            lambda *a, **kw: '{"verdict": "grounded", "reason": "All cited codes are present."}',
+        )
+        state = {"variant": "rs28897696", "evidence": {}, "criteria": [], "classification": "x"}
+        result = graph.check_grounded(state)
+        assert result["grounded"] is True
+        assert result["grounded_reason"] == "All cited codes are present."
+
     def test_ambiguous_verdict_defaults_to_ungrounded(self, monkeypatch):
         # conservative default: if we can't tell, don't let the graph treat it as grounded
         monkeypatch.setattr(graph.llm, "complete", lambda *a, **kw: "unclear, hard to say")
@@ -335,9 +358,11 @@ class TestCheckGrounded:
     def test_uses_groundedness_purpose_and_small_max_tokens(self, monkeypatch):
         calls = {}
 
-        def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024):
+        def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024, temperature=None, response_schema=None, provider=None, model=None):
             calls["purpose"] = purpose
             calls["max_tokens"] = max_tokens
+            calls["temperature"] = temperature
+            calls["response_schema"] = response_schema
             return "grounded\nfine"
 
         monkeypatch.setattr(graph.llm, "complete", fake_complete)
@@ -346,6 +371,9 @@ class TestCheckGrounded:
 
         assert calls["purpose"] == "groundedness"
         assert calls["max_tokens"] <= 128
+        # the judge is pinned deterministic and constrained to the verdict enum
+        assert calls["temperature"] == 0
+        assert calls["response_schema"]["properties"]["verdict"]["enum"] == ["grounded", "ungrounded"]
 
     def test_prompt_includes_the_classification_being_verified(self, fake_stack):
         clinvar_result, chunks, llm_calls = fake_stack
@@ -369,6 +397,39 @@ class TestCheckGrounded:
         graph.check_grounded(state)
         assert "BRCA1:c.123A>G" in llm_calls["prompt"]
         assert "PVS1 applies to null variants." in llm_calls["prompt"]
+
+
+class TestParseVerdict:
+    def test_json_object_is_preferred(self):
+        grounded, reason = graph._parse_verdict('{"verdict": "grounded", "reason": "ok"}')
+        assert grounded is True
+        assert reason == "ok"
+
+    def test_falls_back_to_line_parse_when_not_json(self):
+        # a local model that ignored the schema still parses via the old contract
+        grounded, reason = graph._parse_verdict("ungrounded\nPM1 not retrieved.")
+        assert grounded is False
+        assert reason == "PM1 not retrieved."
+
+    def test_ambiguous_non_json_defaults_to_ungrounded(self):
+        grounded, _ = graph._parse_verdict("hard to say")
+        assert grounded is False
+
+    def test_json_with_unknown_verdict_falls_back(self):
+        # malformed verdict value -> don't trust it, fall back to conservative parse
+        grounded, _ = graph._parse_verdict('{"verdict": "maybe", "reason": "unsure"}')
+        assert grounded is False
+
+
+class TestGroundedSystemPrompt:
+    def test_affirms_all_tiers_are_valid(self):
+        # directly counters the observed hallucination that "Pathogenic" is invalid
+        assert "All five ACMG tiers are valid" in graph.GROUNDED_SYSTEM_PROMPT
+        assert "Pathogenic" in graph.GROUNDED_SYSTEM_PROMPT
+
+    def test_includes_few_shot_examples(self):
+        # few-shot: at least one grounded and one ungrounded exemplar
+        assert graph.GROUNDED_SYSTEM_PROMPT.count('"verdict"') >= 3
 
 
 class TestAcmgCodeExtraction:
@@ -471,7 +532,7 @@ class TestGradeEvidence:
     def test_uses_grade_purpose_and_small_max_tokens(self, monkeypatch):
         calls = {}
 
-        def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024):
+        def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024, temperature=None, response_schema=None, provider=None, model=None):
             calls["purpose"] = purpose
             calls["max_tokens"] = max_tokens
             return "sufficient\nfine"
@@ -633,7 +694,7 @@ class TestBoundedRetryLoop:
 
         grade_calls = {"n": 0}
 
-        def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024):
+        def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024, temperature=None, response_schema=None, provider=None, model=None):
             if purpose == "grade":
                 idx = min(grade_calls["n"], len(grade_responses) - 1)
                 grade_calls["n"] += 1
@@ -692,7 +753,7 @@ class TestBoundedRegenerationLoop:
         classify_calls = {"n": 0}
         grounded_calls = {"n": 0}
 
-        def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024):
+        def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024, temperature=None, response_schema=None, provider=None, model=None):
             if purpose == "grade":
                 return "sufficient\nfine"
             if purpose == "groundedness":

@@ -17,7 +17,17 @@ from ollama import ChatResponse
 
 logger = logging.getLogger(__name__)
 
-def complete(prompt: str, system: str = "", *, purpose: str = "generate", max_tokens: int = 1024) -> str:
+def complete(
+    prompt: str,
+    system: str = "",
+    *,
+    purpose: str = "generate",
+    max_tokens: int = 1024,
+    temperature: float | None = None,
+    response_schema: dict | None = None,
+    provider: str | None = None,
+    model: str | None = None,
+) -> str:
     """Return the model's text completion for a prompt.
 
     Args:
@@ -26,34 +36,64 @@ def complete(prompt: str, system: str = "", *, purpose: str = "generate", max_to
         purpose: short tag for telemetry/cost attribution ("generate", "grade",
                  "groundedness", "eval_judge", ...). Also used to pick the judge model.
         max_tokens: output cap.
+        temperature: sampling temperature. None (default) sends no value and lets
+                 the provider default apply. Pass 0 for a deterministic judge.
+                 Only supported on models that accept sampling params — the
+                 configured judge (Haiku 4.5 / a local Ollama model) does.
+        response_schema: optional JSON Schema. When given, the provider constrains
+                 output to match it — Ollama via `format=`, Anthropic via
+                 `output_config.format`. The return value is the raw JSON string;
+                 the caller parses it. Used to pin the judge's verdict to an enum.
+        provider: override the provider resolved from `purpose` ("ollama"/"anthropic").
+        model: override the model resolved from `purpose`. Together with `provider`,
+                 lets the calibration scorer run one specific candidate judge (e.g.
+                 local llama vs Haiku vs Sonnet) through the identical judge path.
 
-    Branches on the provider resolved for `purpose` (see _provider_for):
+    Branches on the resolved provider (override, else _provider_for(purpose)):
       - "ollama"    -> call the local Ollama server (see _complete_ollama)
       - "anthropic" -> call the Claude API (see _complete_anthropic)
     """
-    provider = _provider_for(purpose)
-    model = _model_for(purpose)
+    resolved_provider = provider or _provider_for(purpose)
+    resolved_model = model or _model_for(purpose)
 
-    if provider == "ollama":
-        return _complete_ollama(prompt, system, model, max_tokens)
-    return _complete_anthropic(prompt, system, model, max_tokens)
+    if resolved_provider == "ollama":
+        return _complete_ollama(prompt, system, resolved_model, max_tokens, temperature, response_schema)
+    if resolved_provider == "anthropic":
+        return _complete_anthropic(prompt, system, resolved_model, max_tokens, temperature, response_schema)
+    raise ValueError(f"Unknown provider: {resolved_provider!r}")
 
 
 
-def _complete_ollama(prompt: str, system: str, model: str, max_tokens: int) -> str:
+def _complete_ollama(
+    prompt: str,
+    system: str,
+    model: str,
+    max_tokens: int,
+    temperature: float | None = None,
+    response_schema: dict | None = None,
+) -> str:
     """Call the local Ollama server. Hint: `import ollama; ollama.chat(...)`."""
-    logger.info("ollama call model=%s max_tokens=%d", model, max_tokens)
+    logger.info("ollama call model=%s max_tokens=%d temperature=%s", model, max_tokens, temperature)
 
     messages = []
     if system:
         messages.append({'role': "system", 'content': system})
     messages.append({'role': "user", 'content': prompt})
 
+    options = {'num_predict': max_tokens}
+    if temperature is not None:
+        options['temperature'] = temperature
+
+    kwargs = {}
+    if response_schema is not None:
+        kwargs['format'] = response_schema
+
     try:
         response: ChatResponse = chat(
             model=model,
             messages=messages,
-            options={'num_predict': max_tokens},
+            options=options,
+            **kwargs,
         )
     except Exception as e:
         logger.exception("ollama call failed model=%s", model)
@@ -62,11 +102,24 @@ def _complete_ollama(prompt: str, system: str, model: str, max_tokens: int) -> s
     return response['message']['content']
 
 
-def _complete_anthropic(prompt: str, system: str, model: str, max_tokens: int) -> str:
+def _complete_anthropic(
+    prompt: str,
+    system: str,
+    model: str,
+    max_tokens: int,
+    temperature: float | None = None,
+    response_schema: dict | None = None,
+) -> str:
     """Call the Claude API. Hint: `import anthropic; anthropic.Anthropic().messages.create(...)`."""
-    logger.info("anthropic call model=%s max_tokens=%d", model, max_tokens)
+    logger.info("anthropic call model=%s max_tokens=%d temperature=%s", model, max_tokens, temperature)
 
     client = anthropic.Anthropic()
+
+    kwargs = {}
+    if temperature is not None:
+        kwargs['temperature'] = temperature
+    if response_schema is not None:
+        kwargs['output_config'] = {"format": {"type": "json_schema", "schema": response_schema}}
 
     try:
         response = client.messages.create(
@@ -74,6 +127,7 @@ def _complete_anthropic(prompt: str, system: str, model: str, max_tokens: int) -
             max_tokens=max_tokens,
             system=system,
             messages=[{"role": "user", "content": prompt}],
+            **kwargs,
         )
     except Exception as e:
         logger.exception("anthropic call failed model=%s", model)

@@ -79,7 +79,7 @@ class TestJudgeProviderSplit:
         )
         calls = {}
 
-        def fake_complete_anthropic(prompt, system, model, max_tokens):
+        def fake_complete_anthropic(prompt, system, model, max_tokens, temperature=None, response_schema=None):
             calls["args"] = (prompt, system, model, max_tokens)
             return "claude verdict"
 
@@ -96,7 +96,7 @@ class TestJudgeProviderSplit:
         )
         calls = {}
 
-        def fake_complete_ollama(prompt, system, model, max_tokens):
+        def fake_complete_ollama(prompt, system, model, max_tokens, temperature=None, response_schema=None):
             calls["args"] = (prompt, system, model, max_tokens)
             return "local generation"
 
@@ -113,7 +113,7 @@ class TestComplete:
         monkeypatch.setattr(llm, "settings", _fake_settings(llm_provider="ollama"))
         calls = {}
 
-        def fake_complete_ollama(prompt, system, model, max_tokens):
+        def fake_complete_ollama(prompt, system, model, max_tokens, temperature=None, response_schema=None):
             calls["args"] = (prompt, system, model, max_tokens)
             return "ollama response"
 
@@ -128,7 +128,7 @@ class TestComplete:
         monkeypatch.setattr(llm, "settings", _fake_settings(llm_provider="anthropic"))
         calls = {}
 
-        def fake_complete_anthropic(prompt, system, model, max_tokens):
+        def fake_complete_anthropic(prompt, system, model, max_tokens, temperature=None, response_schema=None):
             calls["args"] = (prompt, system, model, max_tokens)
             return "claude response"
 
@@ -138,3 +138,55 @@ class TestComplete:
 
         assert result == "claude response"
         assert calls["args"] == ("hello", "", "claude-haiku-4-5-20251001", 50)
+
+
+class TestConstraintPassthrough:
+    """temperature + response_schema reach the provider unchanged (VA-35)."""
+
+    def test_ollama_receives_temperature_and_schema(self, monkeypatch):
+        monkeypatch.setattr(llm, "settings", _fake_settings(llm_provider="ollama"))
+        captured = {}
+
+        def fake_complete_ollama(prompt, system, model, max_tokens, temperature=None, response_schema=None):
+            captured["temperature"] = temperature
+            captured["response_schema"] = response_schema
+            return "ok"
+
+        monkeypatch.setattr(llm, "_complete_ollama", fake_complete_ollama)
+        schema = {"type": "object"}
+        llm.complete("p", purpose="groundedness", temperature=0, response_schema=schema)
+
+        assert captured["temperature"] == 0
+        assert captured["response_schema"] is schema
+
+    def test_anthropic_receives_temperature_and_schema(self, monkeypatch):
+        monkeypatch.setattr(llm, "settings", _fake_settings(llm_provider="anthropic"))
+        captured = {}
+
+        def fake_complete_anthropic(prompt, system, model, max_tokens, temperature=None, response_schema=None):
+            captured["temperature"] = temperature
+            captured["response_schema"] = response_schema
+            return "ok"
+
+        monkeypatch.setattr(llm, "_complete_anthropic", fake_complete_anthropic)
+        schema = {"type": "object"}
+        llm.complete("p", purpose="groundedness", temperature=0, response_schema=schema)
+
+        assert captured["temperature"] == 0
+        assert captured["response_schema"] is schema
+
+    def test_defaults_omit_both(self, monkeypatch):
+        """A normal generate call sends neither — preserves prior behavior."""
+        monkeypatch.setattr(llm, "settings", _fake_settings(llm_provider="ollama"))
+        captured = {}
+
+        def fake_complete_ollama(prompt, system, model, max_tokens, temperature=None, response_schema=None):
+            captured["temperature"] = temperature
+            captured["response_schema"] = response_schema
+            return "ok"
+
+        monkeypatch.setattr(llm, "_complete_ollama", fake_complete_ollama)
+        llm.complete("p", purpose="generate")
+
+        assert captured["temperature"] is None
+        assert captured["response_schema"] is None

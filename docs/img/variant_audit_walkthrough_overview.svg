@@ -1,0 +1,152 @@
+<svg viewBox="0 0 1680 800" xmlns="http://www.w3.org/2000/svg" font-family="'Helvetica Neue', Arial, sans-serif">
+  <style>
+    .title  { font-size: 21px; font-weight: 700; fill: #26313d; }
+    .sub    { font-size: 13px; font-style: italic; }
+    .item   { font-size: 15px; fill: #3f4a57; }
+    .exlabel{ font-size: 12px; font-weight: 700; letter-spacing: 2px; }
+    .ex     { font-size: 13px; fill: #55606c; }
+    .exm    { font-size: 12.5px; fill: #55606c; font-family: 'SF Mono','Consolas',monospace; }
+  </style>
+
+  <rect x="0" y="0" width="1680" height="800" fill="#EFE9DC"/>
+
+  <!-- Title -->
+  <text x="40" y="60" fill="#C4603C" font-size="22" font-weight="700" letter-spacing="3">VARIANT AUDIT, END TO END</text>
+  <text x="40" y="108" fill="#2b2b2b" font-size="33" font-weight="700">The agent is the system under test. The harness is the point.</text>
+
+  <!-- flow chevrons between panels -->
+  <text x="433"  y="452" fill="#C9C1B2" font-size="30" text-anchor="middle">&#8250;</text>
+  <text x="840"  y="452" fill="#C9C1B2" font-size="30" text-anchor="middle">&#8250;</text>
+  <text x="1247" y="452" fill="#C9C1B2" font-size="30" text-anchor="middle">&#8250;</text>
+
+  <!-- ================= PANEL A: The Agent (blue) ================= -->
+  <rect x="40" y="160" width="379" height="580" rx="18" fill="#F8F4EC"/>
+  <path d="M58 160 H401 A18 18 0 0 1 419 178 V326 H40 V178 A18 18 0 0 1 58 160 Z" fill="#DCE6F1"/>
+  <!-- icon: state machine -->
+  <g stroke="#33404d" stroke-width="3" fill="none" stroke-linecap="round">
+    <circle cx="189.5" cy="236" r="11" fill="#F8F4EC"/>
+    <circle cx="229.5" cy="236" r="11" fill="#F8F4EC"/>
+    <circle cx="269.5" cy="236" r="11" fill="#F8F4EC"/>
+    <path d="M200.5 236 H218.5 M240.5 236 H258.5"/>
+    <path d="M269.5 249 C 269.5 272, 189.5 272, 189.5 249" stroke-dasharray="4 4"/>
+  </g>
+  <text x="229.5" y="300" class="title" text-anchor="middle">The Agent</text>
+  <text x="229.5" y="320" class="sub" fill="#3F6FA0" text-anchor="middle">the system under test</text>
+  <g>
+    <rect x="70" y="360" width="15" height="15" rx="4" fill="#3F6FA0"/><text x="96" y="372" class="item">RAG: the ACMG rulebook</text>
+    <rect x="70" y="402" width="15" height="15" rx="4" fill="#3F6FA0"/><text x="96" y="414" class="item">5 MCP evidence tools</text>
+    <rect x="70" y="444" width="15" height="15" rx="4" fill="#3F6FA0"/><text x="96" y="456" class="item">LangGraph bounded loops</text>
+  </g>
+  <line x1="64" y1="494" x2="395" y2="494" stroke="#E3DCCE" stroke-width="1.5"/>
+  <text x="64" y="520" class="exlabel" fill="#3F6FA0">EXAMPLE</text>
+  <rect x="64" y="532" width="331" height="188" rx="10" fill="#FDFBF7" stroke="#E7E0D2"/>
+  <text x="84" y="562" class="ex">A variant goes in:</text>
+  <text x="84" y="586" class="exm">rs886040763 (BRCA2 c.8347del)</text>
+  <text x="84" y="616" class="ex">The agent gathers all 5 sources,</text>
+  <text x="84" y="638" class="ex">retrieves the PVS1 null-variant</text>
+  <text x="84" y="660" class="ex">rule, and returns:</text>
+  <text x="84" y="688" class="ex" font-weight="700" fill="#3F6FA0">Pathogenic</text>
+  <text x="176" y="688" class="ex">with cited criteria.</text>
+
+  <!-- ================= PANEL B: Golden Dataset (indigo) ================= -->
+  <rect x="447" y="160" width="379" height="580" rx="18" fill="#F8F4EC"/>
+  <path d="M465 160 H808 A18 18 0 0 1 826 178 V326 H447 V178 A18 18 0 0 1 465 160 Z" fill="#E1E3F0"/>
+  <!-- icon: database + check -->
+  <g stroke="#33404d" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="636.5" cy="220" rx="30" ry="9"/>
+    <path d="M606.5 220 V262 C 606.5 267, 666.5 267, 666.5 262 V220"/>
+    <path d="M606.5 234 C 606.5 239, 666.5 239, 666.5 234"/>
+    <path d="M606.5 248 C 606.5 253, 666.5 253, 666.5 248"/>
+  </g>
+  <circle cx="668" cy="260" r="12" fill="#6E7CA8"/>
+  <path d="M662 260 L666 264 L674 255" stroke="#ffffff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="636.5" y="300" class="title" text-anchor="middle">Golden Dataset</text>
+  <text x="636.5" y="320" class="sub" fill="#6E7CA8" text-anchor="middle">the ground truth</text>
+  <g>
+    <rect x="477" y="360" width="15" height="15" rx="4" fill="#6E7CA8"/><text x="503" y="372" class="item">Stratified: difficulty &#215; label</text>
+    <rect x="477" y="402" width="15" height="15" rx="4" fill="#6E7CA8"/><text x="503" y="414" class="item">ClinVar-anchored, validated rsIDs</text>
+    <rect x="477" y="444" width="15" height="15" rx="4" fill="#6E7CA8"/><text x="503" y="456" class="item">Abstention subset (the moat)</text>
+  </g>
+  <line x1="471" y1="494" x2="802" y2="494" stroke="#E3DCCE" stroke-width="1.5"/>
+  <text x="471" y="520" class="exlabel" fill="#6E7CA8">EXAMPLE</text>
+  <rect x="471" y="532" width="331" height="188" rx="10" fill="#FDFBF7" stroke="#E7E0D2"/>
+  <text x="491" y="562" class="ex">One labeled row:</text>
+  <text x="491" y="590" class="exm">{ "variant": "rs886040763",</text>
+  <text x="491" y="612" class="exm">  "gene": "BRCA2",</text>
+  <text x="491" y="634" class="exm">  "gold_label": "P",</text>
+  <text x="491" y="656" class="exm">  "review_stars": 3,</text>
+  <text x="491" y="678" class="exm">  "expected": "classify" }</text>
+  <text x="491" y="704" class="ex" font-style="italic">2★+ ClinVar, non-conflicting.</text>
+
+  <!-- ================= PANEL C: Eval Harness (terracotta, the headline) ================= -->
+  <rect x="854" y="160" width="379" height="580" rx="18" fill="#F8F4EC"/>
+  <path d="M872 160 H1215 A18 18 0 0 1 1233 178 V326 H854 V178 A18 18 0 0 1 872 160 Z" fill="#F6E3D9"/>
+  <!-- icon: gauge -->
+  <g stroke="#33404d" stroke-width="3" fill="none" stroke-linecap="round">
+    <path d="M1011.5 262 A32 32 0 0 1 1075.5 262"/>
+    <path d="M1043.5 262 L1063 240"/>
+    <path d="M1017 255 l6 -3 M1043.5 244 v-7 M1070 255 l-6 -3"/>
+  </g>
+  <circle cx="1043.5" cy="262" r="4" fill="#33404d"/>
+  <text x="1043.5" y="300" class="title" text-anchor="middle" fill="#7a241a">Eval Harness</text>
+  <text x="1043.5" y="320" class="sub" fill="#C4603C" text-anchor="middle" font-weight="700">the headline</text>
+  <g>
+    <rect x="884" y="360" width="15" height="15" rx="4" fill="#C4603C"/><text x="910" y="372" class="item">Calibrated judge (Cohen's &#954;)</text>
+    <rect x="884" y="402" width="15" height="15" rx="4" fill="#C4603C"/><text x="910" y="414" class="item">Harm-weighted, Wilson CIs</text>
+    <rect x="884" y="444" width="15" height="15" rx="4" fill="#C4603C"/><text x="910" y="456" class="item">Frozen evidence, reproducible</text>
+  </g>
+  <line x1="878" y1="494" x2="1209" y2="494" stroke="#EAD9C9" stroke-width="1.5"/>
+  <text x="878" y="520" class="exlabel" fill="#C4603C">EXAMPLE</text>
+  <rect x="878" y="532" width="331" height="188" rx="10" fill="#FDFBF7" stroke="#EBD9C8"/>
+  <text x="898" y="562" class="ex">An honest scorecard:</text>
+  <text x="898" y="590" class="ex" font-weight="700" fill="#7a241a">accuracy 0.914</text>
+  <text x="898" y="614" class="exm">95% CI [0.78, 0.97], n=35</text>
+  <text x="898" y="642" class="ex">harm-weighted cost tracked;</text>
+  <text x="898" y="664" class="ex">judge &#954; recorded before it is</text>
+  <text x="898" y="686" class="ex">allowed to gate anything.</text>
+  <text x="898" y="710" class="ex" font-style="italic">caught 2 real bugs on run one.</text>
+
+  <!-- ================= PANEL D: Ship with Confidence (green) ================= -->
+  <rect x="1261" y="160" width="379" height="580" rx="18" fill="#F8F4EC"/>
+  <path d="M1279 160 H1622 A18 18 0 0 1 1640 178 V326 H1261 V178 A18 18 0 0 1 1279 160 Z" fill="#E2E9DB"/>
+  <!-- icon: shield + check -->
+  <g stroke="#33404d" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M1450.5 214 L1480 226 V250 Q1480 270 1450.5 280 Q1421 270 1421 250 V226 Z"/>
+    <path d="M1437 247 L1447 257 L1465 236"/>
+  </g>
+  <text x="1450.5" y="300" class="title" text-anchor="middle">Ship with Confidence</text>
+  <text x="1450.5" y="320" class="sub" fill="#5f7a4f" text-anchor="middle">the payoff</text>
+  <g>
+    <rect x="1291" y="360" width="15" height="15" rx="4" fill="#6E8B5B"/><text x="1317" y="372" class="item">CI gates on every change</text>
+    <rect x="1291" y="402" width="15" height="15" rx="4" fill="#6E8B5B"/><text x="1317" y="414" class="item">OTel traces + Grafana</text>
+    <rect x="1291" y="444" width="15" height="15" rx="4" fill="#6E8B5B"/><text x="1317" y="456" class="item">Production failure-mining loop</text>
+  </g>
+  <line x1="1285" y1="494" x2="1616" y2="494" stroke="#E1E7D6" stroke-width="1.5"/>
+  <text x="1285" y="520" class="exlabel" fill="#5f7a4f">EXAMPLE</text>
+  <rect x="1285" y="532" width="331" height="188" rx="10" fill="#FDFBF7" stroke="#E3E9D8"/>
+  <text x="1305" y="562" class="ex">A prompt tweak looks fine,</text>
+  <text x="1305" y="584" class="ex">but drops accuracy below</text>
+  <text x="1305" y="606" class="ex">the release gate.</text>
+  <text x="1305" y="636" class="ex" font-weight="700" fill="#4f6b40">CI blocks the merge.</text>
+  <text x="1305" y="664" class="ex">The regression never reaches</text>
+  <text x="1305" y="686" class="ex">a patient-facing answer.</text>
+
+  <!-- panel borders on top -->
+  <g fill="none" stroke="#DAD3C5" stroke-width="1.5">
+    <rect x="40"   y="160" width="379" height="580" rx="18"/>
+    <rect x="447"  y="160" width="379" height="580" rx="18"/>
+    <rect x="854"  y="160" width="379" height="580" rx="18"/>
+    <rect x="1261" y="160" width="379" height="580" rx="18"/>
+  </g>
+
+  <!-- badges -->
+  <g text-anchor="middle" font-size="24" font-weight="700" fill="#ffffff">
+    <circle cx="229.5"  cy="160" r="27" fill="#3F6FA0" stroke="#EFE9DC" stroke-width="4"/><text x="229.5"  y="169">A</text>
+    <circle cx="636.5"  cy="160" r="27" fill="#6E7CA8" stroke="#EFE9DC" stroke-width="4"/><text x="636.5"  y="169">B</text>
+    <circle cx="1043.5" cy="160" r="27" fill="#C4603C" stroke="#EFE9DC" stroke-width="4"/><text x="1043.5" y="169">C</text>
+    <circle cx="1450.5" cy="160" r="27" fill="#6E8B5B" stroke="#EFE9DC" stroke-width="4"/><text x="1450.5" y="169">D</text>
+  </g>
+
+  <!-- bottom flow caption -->
+  <text x="840" y="772" fill="#6a6256" font-size="15.5" font-style="italic" text-anchor="middle">A &#8594; B &#8594; C &#8594; D  ·  build the agent, anchor the ground truth, measure whether to trust it, gate the ship.</text>
+</svg>

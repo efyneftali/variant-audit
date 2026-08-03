@@ -18,6 +18,7 @@ Flow (bounded loops guarantee termination):
   check_grounded    : are the cited criteria actually supported? (purpose="groundedness")
 """
 
+import json
 import re
 from typing import TypedDict
 
@@ -283,14 +284,43 @@ def classify(state: GraphState) -> dict:
 
 GROUNDED_SYSTEM_PROMPT = (
     "You are verifying whether a variant classification is grounded in the evidence "
-    "and ACMG criteria it was given — you are not classifying the variant yourself. "
-    "Check every specific claim in the classification (the tier called, and each ACMG "
-    "criterion cited) against the evidence and ACMG criteria text provided. "
-    "If the classification cites a criterion that isn't in the provided criteria text, "
-    "or asserts a fact the evidence doesn't support, that's ungrounded. "
-    "Respond with exactly one word on the first line — 'grounded' or 'ungrounded' — "
-    "then a one-sentence reason on the second line."
+    "and ACMG criteria it was given — you are not classifying the variant yourself, "
+    "and you are not judging whether the call is clinically correct. "
+    "All five ACMG tiers are valid labels: Pathogenic, Likely Pathogenic, Uncertain "
+    "Significance, Likely Benign, and Benign. Never call a classification ungrounded "
+    "merely because of the tier it chose — only whether its claims are supported. "
+    "A classification is ungrounded if it cites an ACMG criterion code that does not "
+    "appear in the provided criteria text, or asserts a fact the evidence does not "
+    "support. Otherwise it is grounded.\n\n"
+    'Respond with a JSON object and nothing else: {"verdict": "grounded" or '
+    '"ungrounded", "reason": "<one sentence>"}.\n\n'
+    "Examples:\n"
+    "Classification 'Benign; criteria used: BA1' — criteria text contains BA1, "
+    "evidence shows 7% allele frequency.\n"
+    '{"verdict": "grounded", "reason": "BA1 appears in the criteria text and the 7% '
+    'frequency supports it."}\n\n'
+    "Classification 'Pathogenic; criteria used: PVS1' — criteria text contains PVS1, "
+    "evidence shows a nonsense variant.\n"
+    '{"verdict": "grounded", "reason": "Pathogenic is a valid tier and PVS1 is '
+    'supported by the nonsense variant."}\n\n'
+    "Classification 'Pathogenic; criteria used: PM1' — criteria text does not "
+    "contain PM1.\n"
+    '{"verdict": "ungrounded", "reason": "PM1 is cited but never appears in the '
+    'provided criteria text."}'
 )
+
+# Pin the verdict to an enum so the judge can't drift into a wrong premise (e.g.
+# rejecting "Pathogenic" as an invalid tier). The reason stays free text — it is
+# fed forward into the regeneration retry, so it has to carry a real critique.
+_GROUNDED_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "verdict": {"type": "string", "enum": ["grounded", "ungrounded"]},
+        "reason": {"type": "string"},
+    },
+    "required": ["verdict", "reason"],
+    "additionalProperties": False,
+}
 
 
 # ACMG criterion codes: PVS1, PS1-4, PM1-6, PP1-5, BA1, BS1-4, BP1-7, each
@@ -350,33 +380,83 @@ def _grounded_reason(verdict: str) -> str:
     return " ".join(lines[1:]) if len(lines) > 1 else verdict.strip()
 
 
+def _parse_verdict(verdict: str) -> tuple[bool, str]:
+    """Parse the judge's reply into (grounded, reason).
+
+    Prefer the constrained JSON object {verdict, reason}. Fall back to the older
+    line-based parse if the reply isn't valid JSON with a known verdict — a local
+    Ollama model may not honor the schema, and the fallback keeps the conservative
+    'ambiguous -> ungrounded' default intact.
+    """
+    text = verdict.strip()
+    try:
+        data = json.loads(text)
+        v = str(data.get("verdict", "")).strip().lower()
+        reason = str(data.get("reason", "")).strip()
+        if v in ("grounded", "ungrounded"):
+            return v == "grounded", reason or text
+    except (json.JSONDecodeError, AttributeError, TypeError):
+        pass
+    return _parse_grounded(text), _grounded_reason(text)
+
+
+def groundedness_verdict(
+    variant: str,
+    classification: str,
+    evidence_text: str,
+    criteria_text: str,
+    *,
+    provider: str | None = None,
+    model: str | None = None,
+) -> tuple[bool, str]:
+    """The judge's decision for one case: (grounded, reason).
+
+    The deterministic pre-check runs first — if the classification cites an ACMG
+    code absent from the criteria, that's provably ungrounded and no model is
+    called. Otherwise the constrained LLM judge decides.
+
+    Shared by the live node (check_grounded) and the offline calibration scorer
+    so both judge through the identical path. `provider`/`model` override the
+    configured judge, which is how the scorer runs each candidate (local llama /
+    Haiku / Sonnet) against the human labels.
+    """
+    precheck = _precheck_grounded(classification, criteria_text)
+    if precheck is not None:
+        return precheck["grounded"], precheck["grounded_reason"]
+
+    prompt = (
+        f"Variant: {variant}\n\n"
+        f"== Classification to verify ==\n{classification}\n\n"
+        f"== Evidence ==\n{evidence_text}\n\n"
+        f"== Relevant ACMG Criteria ==\n{criteria_text}\n\n"
+        f"Is every claim in this classification grounded in the evidence and criteria above?"
+    )
+    verdict = llm.complete(
+        prompt,
+        system=GROUNDED_SYSTEM_PROMPT,
+        purpose="groundedness",
+        max_tokens=128,
+        temperature=0,
+        response_schema=_GROUNDED_SCHEMA,
+        provider=provider,
+        model=model,
+    )
+    return _parse_verdict(verdict)
+
+
 def check_grounded(state: GraphState) -> dict:
     """Verify every claim in the classification is supported by the evidence/criteria.
 
     Returns the verdict AND its reason -- the reason is fed forward into the
     regeneration retry (see classify), which is the whole point of running the
-    check. Discarding it made the retry loop a no-op.
-
-    A deterministic pre-check runs first: if the classification cites an ACMG
-    code absent from the retrieved criteria, that's provably ungrounded and we
-    return without ever calling the judge. Only the cases plain code can't
-    settle reach the LLM.
+    check. Discarding it made the retry loop a no-op. The pre-check + LLM logic
+    lives in groundedness_verdict, shared with the calibration scorer.
     """
     evidence_text, criteria_text = _build_evidence_and_criteria_text(state)
-
-    precheck = _precheck_grounded(state["classification"], criteria_text)
-    if precheck is not None:
-        return precheck
-
-    prompt = (
-        f"Variant: {state['variant']}\n\n"
-        f"== Classification to verify ==\n{state['classification']}\n\n"
-        f"== Evidence ==\n{evidence_text}\n\n"
-        f"== Relevant ACMG Criteria ==\n{criteria_text}\n\n"
-        f"Is every claim in this classification grounded in the evidence and criteria above?"
+    grounded, reason = groundedness_verdict(
+        state["variant"], state["classification"], evidence_text, criteria_text
     )
-    verdict = llm.complete(prompt, system=GROUNDED_SYSTEM_PROMPT, purpose="groundedness", max_tokens=64)
-    return {"grounded": _parse_grounded(verdict), "grounded_reason": _grounded_reason(verdict)}
+    return {"grounded": grounded, "grounded_reason": reason}
 
 
 # --- conditional edges ---
