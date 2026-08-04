@@ -8,6 +8,7 @@ stubbed groundedness_verdict so no model is called.
 
 import math
 
+import evals.calibration.make_split as ms
 import evals.calibration.score_judges as sj
 
 
@@ -117,11 +118,61 @@ class TestRenderReport:
     def test_records_pick_and_kappa(self):
         scores = [sj.score_candidate("local", {"c1": {"label": "grounded"}}, [("c1", "grounded")])]
         pick = scores[0]
-        md = sj.render_report(scores, pick, 0.6, n_labeled=1)
+        md = sj.render_report(scores, pick, 0.6, n_labeled=1, partition="test", in_sample=False)
         assert "Selected judge: **local**" in md
         assert "κ" in md
 
     def test_flags_when_none_clear(self):
         scores = [sj.score_candidate("local", {"c1": {"label": "ungrounded"}}, [("c1", "grounded")])]
-        md = sj.render_report(scores, None, 0.6, n_labeled=1)
+        md = sj.render_report(scores, None, 0.6, n_labeled=1, partition="test", in_sample=False)
         assert "No candidate cleared" in md
+
+
+class TestMakeSplit:
+    def _labeled(self, n_g, n_u):
+        return [(f"g{i}", "grounded") for i in range(n_g)] + [(f"u{i}", "ungrounded") for i in range(n_u)]
+
+    def test_dev_and_test_are_disjoint_and_cover_all(self):
+        labeled = self._labeled(20, 25)
+        split = ms.make_split(labeled, holdout_frac=0.4, seed=1)
+        dev, test = set(split["dev"]), set(split["test"])
+        assert dev.isdisjoint(test)
+        assert dev | test == {cid for cid, _ in labeled}
+
+    def test_is_stratified_by_label(self):
+        # 40% of each class lands in test, so both classes are represented in test
+        labeled = self._labeled(20, 25)
+        label_of = dict(labeled)
+        split = ms.make_split(labeled, holdout_frac=0.4, seed=1)
+        test_labels = {label_of[cid] for cid in split["test"]}
+        assert test_labels == {"grounded", "ungrounded"}
+        # ~40% of 20 grounded = 8, ~40% of 25 ungrounded = 10
+        assert sum(label_of[c] == "grounded" for c in split["test"]) == 8
+        assert sum(label_of[c] == "ungrounded" for c in split["test"]) == 10
+
+    def test_deterministic_for_a_seed(self):
+        labeled = self._labeled(20, 25)
+        assert ms.make_split(labeled, 0.4, 7) == ms.make_split(labeled, 0.4, 7)
+
+    def test_different_seed_gives_different_split(self):
+        labeled = self._labeled(20, 25)
+        assert ms.make_split(labeled, 0.4, 1) != ms.make_split(labeled, 0.4, 2)
+
+
+class TestReportRigor:
+    def _scores(self):
+        return [sj.score_candidate("local", {"c1": {"label": "grounded"}}, [("c1", "grounded")])]
+
+    def test_in_sample_report_is_stamped_loudly(self):
+        md = sj.render_report(self._scores(), self._scores()[0], 0.6, n_labeled=45,
+                              partition="all", in_sample=True)
+        assert "IN-SAMPLE" in md
+        assert "upper bound" in md  # names the bias direction
+        assert "holdout" in md.lower()  # points at the fix
+
+    def test_holdout_report_names_the_partition(self):
+        md = sj.render_report(self._scores(), self._scores()[0], 0.6, n_labeled=18,
+                              partition="test", in_sample=False)
+        assert "Holdout κ" in md
+        assert "never tuned against" in md
+        assert "IN-SAMPLE" not in md

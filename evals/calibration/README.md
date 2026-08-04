@@ -82,17 +82,45 @@ it rather than force a label — a smaller clean set beats a padded noisy one.
 | `cases.jsonl` | the frozen cases (generated) |
 | `labels.jsonl` | your labels: `{id, variant, label, rationale, offending_criterion, labeler, labeled_at}` |
 
+## Don't train on the test set — keep a holdout
+
+Tuning the judge prompt against the same cases you then report κ on is training
+on the test set: you'd be fitting the prompt to this specific 45, and the number
+would come out optimistically biased. Same rigor the dataset gets.
+
+So freeze a **dev/test split** once, right after labeling:
+
+```
+python evals/calibration/make_split.py        # 40% holdout, stratified by your label, frozen to split.json
+```
+
+Then the discipline is:
+- **Inspect disagreements and edit the judge prompt against the `dev` split only.**
+- **Report the headline κ on the `test` split** — cases the prompt has never seen.
+- The split is frozen in `split.json` and stratified by your label (both classes
+  in each partition). It refuses to silently re-roll — re-rolling until the number
+  looks good is the same cheating in a different spot.
+
+If you *don't* keep a holdout, that's allowed — but then the report says so, in
+capitals: scoring `--split all` stamps the number **IN-SAMPLE** and calls it an
+upper bound. What's not allowed is quietly tuning on all 45 and reporting κ as if
+it were held out.
+
 ## Score the candidate judges (the payoff)
 
-Once you've labeled, `score_judges.py` runs each candidate judge over the same
-cases, computes **Cohen's κ** (judge vs. you), and writes `JUDGE_CALIBRATION.md`
-with the table and the pick.
+`score_judges.py` runs each candidate judge over the cases, computes **Cohen's κ**
+(judge vs. you), and writes `JUDGE_CALIBRATION.md` with the table, the pick, and a
+banner saying whether the κ is holdout or in-sample.
 
 ```
-python evals/calibration/score_judges.py                          # FREE: local llama only
-python evals/calibration/score_judges.py --candidates local,haiku,sonnet   # includes the paid judges
-python evals/calibration/score_judges.py --threshold 0.6          # your agreement bar
+python evals/calibration/score_judges.py --split test --candidates local,haiku,sonnet   # holdout (report this)
+python evals/calibration/score_judges.py --split dev  --candidates haiku                 # iterate the prompt here
+python evals/calibration/score_judges.py --split all  --candidates local                 # in-sample (stamped as such)
+python evals/calibration/score_judges.py --threshold 0.6                                  # your agreement bar
 ```
+
+With a frozen split, `--split` defaults to `test`. Without one, it defaults to
+`all` and stamps the report IN-SAMPLE.
 
 **Cost.** `local` is free; `haiku` and `sonnet` are paid Anthropic calls, so
 they're **opt-in** — the default runs only `local`. The bill is tiny: at most one

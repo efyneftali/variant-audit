@@ -43,6 +43,7 @@ from src.variant_audit.config import settings  # noqa: E402
 HERE = Path(__file__).resolve().parent
 CASES_DEFAULT = HERE / "cases.jsonl"
 LABELS_DEFAULT = HERE / "labels.jsonl"
+SPLIT_DEFAULT = HERE / "split.json"
 RUNS_DIR = HERE / "judge_runs"
 REPORT_DEFAULT = Path(__file__).resolve().parent.parent.parent / "JUDGE_CALIBRATION.md"
 
@@ -161,13 +162,27 @@ def pick_judge(scores: list[dict], threshold: float) -> dict | None:
 
 # --- report --------------------------------------------------------------------
 
-def render_report(scores: list[dict], pick: dict | None, threshold: float, *, n_labeled: int) -> str:
+def render_report(scores: list[dict], pick: dict | None, threshold: float, *, n_labeled: int,
+                  partition: str, in_sample: bool) -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    if in_sample:
+        rigor = (
+            f"⚠️ **IN-SAMPLE κ** over all {n_labeled} labeled cases — no holdout. This is only "
+            "an honest number if the judge prompt was **not** tuned against these cases; the "
+            "moment you inspect per-case disagreements and edit the prompt, re-report on a "
+            "holdout (`make_split.py` → `--split test`), because in-sample κ is an upper bound."
+        )
+    else:
+        rigor = (
+            f"**Holdout κ** on the `{partition}` split ({n_labeled} cases the judge prompt was "
+            "never tuned against). Dev-split cases are excluded — tune the prompt there, report here."
+        )
     lines = [
         "# Judge calibration (VA-35)",
         "",
-        f"_Generated {now} · {n_labeled} human-labeled cases · threshold κ ≥ {threshold:.2f} "
-        "(substantial agreement, Landis & Koch)._",
+        f"_Generated {now} · threshold κ ≥ {threshold:.2f} (substantial agreement, Landis & Koch)._",
+        "",
+        rigor,
         "",
         "Cohen's κ is agreement between each candidate judge and the human labels, "
         "corrected for chance. `false_ungrounded` = judge flagged a grounded call "
@@ -204,8 +219,11 @@ def render_report(scores: list[dict], pick: dict | None, threshold: float, *, n_
              "Either lower the threshold (with eyes open), add labeled cases, or "
              "improve the judge prompt before trusting it.") if best else "No scores.",
         ]
-    lines += ["", "_Reproduce: `python evals/calibration/score_judges.py --candidates "
-              "local,haiku,sonnet`. Raw per-case verdicts are cached in "
+    reproduce = (
+        "python evals/calibration/score_judges.py --candidates local,haiku,sonnet"
+        + ("" if in_sample and partition == "all" else f" --split {partition}")
+    )
+    lines += ["", f"_Reproduce: `{reproduce}`. Raw per-case verdicts are cached in "
               "`evals/calibration/judge_runs/`._", ""]
     return "\n".join(lines)
 
@@ -220,6 +238,9 @@ def main() -> None:
                         help="comma-separated: local,haiku,sonnet (default: local only — paid ones are opt-in)")
     parser.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD)
     parser.add_argument("--report", type=Path, default=REPORT_DEFAULT)
+    parser.add_argument("--split", choices=["test", "dev", "all"], default=None,
+                        help="which partition of split.json to score. Default: 'test' (holdout) if a "
+                             "split is frozen, else 'all' (in-sample). Report the headline number on 'test'.")
     parser.add_argument("--force", action="store_true", help="ignore cache and re-judge (re-pays for paid candidates)")
     args = parser.parse_args()
 
@@ -235,21 +256,43 @@ def main() -> None:
     labeled = [(cid, labels[cid]["label"]) for cid in labels if cid in cases]
     if not labeled:
         sys.exit("No labeled cases overlap with the cases file — nothing to score.")
+
+    # Resolve the holdout partition. A frozen split defaults us to the test set;
+    # scoring 'all' (or with no split at all) is in-sample and gets stamped as such.
+    frozen = json.loads(SPLIT_DEFAULT.read_text()) if SPLIT_DEFAULT.exists() else None
+    partition = args.split or ("test" if frozen else "all")
+    if partition != "all" and frozen is None:
+        sys.exit(f"--split {partition} needs a frozen split. Create one: python evals/calibration/make_split.py")
+    if partition == "all":
+        selected_ids = None
+        in_sample = True
+    else:
+        selected_ids = set(frozen[partition])
+        in_sample = partition == "dev"  # dev is what you tune on -> also in-sample if reported
+    if selected_ids is not None:
+        labeled = [(cid, lbl) for cid, lbl in labeled if cid in selected_ids]
+        if not labeled:
+            sys.exit(f"No labeled cases in the '{partition}' partition.")
     scoring_cases = [cases[cid] for cid, _ in labeled]
 
+    banner = (
+        f"IN-SAMPLE (all {len(labeled)} cases — no holdout)" if partition == "all"
+        else f"holdout '{partition}' split ({len(labeled)} cases)"
+    )
     paid = [n for n in names if CANDIDATES[n][2]]
     if paid:
         print(f"NOTE: {paid} are paid API calls (up to {len(scoring_cases)} judged cases each, "
               "minus whatever the free pre-check settles). Cached after the first run.\n")
 
-    print(f"Scoring {len(labeled)} labeled case(s) across: {names}")
+    print(f"Scoring {banner} across: {names}")
     scores = []
     for name in names:
         verdicts = run_candidate(name, scoring_cases, force=args.force)
         scores.append(score_candidate(name, verdicts, labeled))
 
     pick = pick_judge(scores, args.threshold)
-    report = render_report(scores, pick, args.threshold, n_labeled=len(labeled))
+    report = render_report(scores, pick, args.threshold, n_labeled=len(labeled),
+                           partition=partition, in_sample=in_sample)
     args.report.write_text(report)
 
     print("\n" + report)
