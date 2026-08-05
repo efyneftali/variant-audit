@@ -46,7 +46,9 @@ Scripts are kept for reproducibility; `variant_summary.txt`/`.txt.gz` are gitign
 - **VUS = abstention test**: correct behavior on a true VUS (confidently-called or conflicting) is to return VUS / not produce a confident P or B. Penalize a confident wrong call on a VUS heavily.
 
 ## Adversarial / abstention subset (hand-curated — the moat)
-6 of the 37 rows are `expected_behavior: abstain` — real ClinVar "Conflicting interpretations of pathogenicity" calls across BRCA1/2, APC, MSH2/6, PMS2, NF1, RYR1, MYH7, SCN5A, FBN1, COL1A1, TP53, LDLR, VHL and others. Correct behavior is an uncertain call, not a confident pick.
+7 of the 37 rows are `expected_behavior: abstain`: 6 real ClinVar "Conflicting classifications of pathogenicity" calls (1★) — LDLR (×3), RB1, VHL (×2) — plus the 1 rule-mined synthetic trap (`syn-001`, KCNC2; see below). Correct behavior is an uncertain call, not a confident pick; these are scored by the `abstention` partition in `eval_classification`.
+
+The 6 *other* VUS rows are deliberately **not** in this subset: they're 2★ ClinVar consensus "Uncertain significance" calls (MLH1 ×2, MSH6 ×2, PMS2 ×2) and carry `expected_behavior: classify`, because the adjudicated answer genuinely *is* VUS — a real classification target, scored in the normal confusion matrix rather than the abstention partition. So the 13 VUS rows split 7 abstain (conflicting / trap) + 6 classify (consensus-VUS).
 
 ## Synthetic augmentation (rule-mined, not fabricated)
 Every tool in this pipeline requires a real, resolvable rsID — an invented variant would simply fail to run, so "synthetic" here means **programmatically selected real ClinVar data**, not fabricated ground truth. `mine_synthetic.py` scans the full 2.88M-row in-scope pool (not just the curated 26-gene list) for a specific adversarial pattern via an automated rule: a variant ClinVar calls Pathogenic/Likely pathogenic on a single submitter's say-so (0–1★, non-conflicting), where gnomAD shows the variant is actually common in the population (allele frequency > 1%) — a direct contradiction, since BA1/BS1 says a variant this common can't be causing a rare Mendelian disorder.

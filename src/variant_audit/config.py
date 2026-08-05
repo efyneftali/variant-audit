@@ -16,6 +16,12 @@ load_dotenv()
 class Settings:
     # --- LLM provider switch (local-first) ---
     llm_provider: str = field(default_factory=lambda: os.getenv("LLM_PROVIDER", "ollama"))
+    # Judge purposes (grade/groundedness/eval_judge) can route to a different
+    # provider than generation, e.g. JUDGE_PROVIDER=anthropic with
+    # LLM_PROVIDER=ollama keeps generation local while judging uses Haiku.
+    judge_provider: str = field(
+        default_factory=lambda: os.getenv("JUDGE_PROVIDER", os.getenv("LLM_PROVIDER", "ollama"))
+    )
 
     ollama_host: str = field(default_factory=lambda: os.getenv("OLLAMA_HOST", "http://localhost:11434"))
     ollama_model: str = field(default_factory=lambda: os.getenv("OLLAMA_MODEL", "llama3.1:8b"))

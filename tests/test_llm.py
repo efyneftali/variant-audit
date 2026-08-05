@@ -21,6 +21,8 @@ def _fake_settings(**overrides):
         anthropic_judge_model="claude-haiku-4-5-20251001",
     )
     base.update(overrides)
+    # mirror config.py: judge_provider defaults to the main provider
+    base.setdefault("judge_provider", base["llm_provider"])
     return SimpleNamespace(**base)
 
 
@@ -48,12 +50,70 @@ class TestModelFor:
             llm._model_for("generate")
 
 
+class TestJudgeProviderSplit:
+    """JUDGE_PROVIDER decouples judging from generation (VA-35)."""
+
+    def test_judge_provider_defaults_to_main_provider(self, monkeypatch):
+        monkeypatch.setattr(llm, "settings", _fake_settings(llm_provider="ollama"))
+        assert llm._provider_for("grade") == "ollama"
+        assert llm._provider_for("generate") == "ollama"
+
+    @pytest.mark.parametrize("purpose", ["grade", "groundedness", "eval_judge"])
+    def test_judge_purposes_route_to_judge_provider(self, monkeypatch, purpose):
+        monkeypatch.setattr(
+            llm, "settings", _fake_settings(llm_provider="ollama", judge_provider="anthropic")
+        )
+        assert llm._provider_for(purpose) == "anthropic"
+        assert llm._model_for(purpose) == "claude-haiku-4-5-20251001"
+
+    def test_generation_stays_on_main_provider(self, monkeypatch):
+        monkeypatch.setattr(
+            llm, "settings", _fake_settings(llm_provider="ollama", judge_provider="anthropic")
+        )
+        assert llm._provider_for("generate") == "ollama"
+        assert llm._model_for("generate") == "llama3.1:8b"
+
+    def test_complete_routes_judge_call_to_anthropic(self, monkeypatch):
+        monkeypatch.setattr(
+            llm, "settings", _fake_settings(llm_provider="ollama", judge_provider="anthropic")
+        )
+        calls = {}
+
+        def fake_complete_anthropic(prompt, system, model, max_tokens, temperature=None, response_schema=None):
+            calls["args"] = (prompt, system, model, max_tokens)
+            return "claude verdict"
+
+        monkeypatch.setattr(llm, "_complete_anthropic", fake_complete_anthropic)
+
+        result = llm.complete("is this grounded?", purpose="groundedness", max_tokens=50)
+
+        assert result == "claude verdict"
+        assert calls["args"] == ("is this grounded?", "", "claude-haiku-4-5-20251001", 50)
+
+    def test_complete_routes_generation_to_ollama_alongside(self, monkeypatch):
+        monkeypatch.setattr(
+            llm, "settings", _fake_settings(llm_provider="ollama", judge_provider="anthropic")
+        )
+        calls = {}
+
+        def fake_complete_ollama(prompt, system, model, max_tokens, temperature=None, response_schema=None):
+            calls["args"] = (prompt, system, model, max_tokens)
+            return "local generation"
+
+        monkeypatch.setattr(llm, "_complete_ollama", fake_complete_ollama)
+
+        result = llm.complete("classify this variant", purpose="generate", max_tokens=50)
+
+        assert result == "local generation"
+        assert calls["args"] == ("classify this variant", "", "llama3.1:8b", 50)
+
+
 class TestComplete:
     def test_routes_to_ollama_with_resolved_model(self, monkeypatch):
         monkeypatch.setattr(llm, "settings", _fake_settings(llm_provider="ollama"))
         calls = {}
 
-        def fake_complete_ollama(prompt, system, model, max_tokens):
+        def fake_complete_ollama(prompt, system, model, max_tokens, temperature=None, response_schema=None):
             calls["args"] = (prompt, system, model, max_tokens)
             return "ollama response"
 
@@ -68,7 +128,7 @@ class TestComplete:
         monkeypatch.setattr(llm, "settings", _fake_settings(llm_provider="anthropic"))
         calls = {}
 
-        def fake_complete_anthropic(prompt, system, model, max_tokens):
+        def fake_complete_anthropic(prompt, system, model, max_tokens, temperature=None, response_schema=None):
             calls["args"] = (prompt, system, model, max_tokens)
             return "claude response"
 
@@ -78,3 +138,55 @@ class TestComplete:
 
         assert result == "claude response"
         assert calls["args"] == ("hello", "", "claude-haiku-4-5-20251001", 50)
+
+
+class TestConstraintPassthrough:
+    """temperature + response_schema reach the provider unchanged (VA-35)."""
+
+    def test_ollama_receives_temperature_and_schema(self, monkeypatch):
+        monkeypatch.setattr(llm, "settings", _fake_settings(llm_provider="ollama"))
+        captured = {}
+
+        def fake_complete_ollama(prompt, system, model, max_tokens, temperature=None, response_schema=None):
+            captured["temperature"] = temperature
+            captured["response_schema"] = response_schema
+            return "ok"
+
+        monkeypatch.setattr(llm, "_complete_ollama", fake_complete_ollama)
+        schema = {"type": "object"}
+        llm.complete("p", purpose="groundedness", temperature=0, response_schema=schema)
+
+        assert captured["temperature"] == 0
+        assert captured["response_schema"] is schema
+
+    def test_anthropic_receives_temperature_and_schema(self, monkeypatch):
+        monkeypatch.setattr(llm, "settings", _fake_settings(llm_provider="anthropic"))
+        captured = {}
+
+        def fake_complete_anthropic(prompt, system, model, max_tokens, temperature=None, response_schema=None):
+            captured["temperature"] = temperature
+            captured["response_schema"] = response_schema
+            return "ok"
+
+        monkeypatch.setattr(llm, "_complete_anthropic", fake_complete_anthropic)
+        schema = {"type": "object"}
+        llm.complete("p", purpose="groundedness", temperature=0, response_schema=schema)
+
+        assert captured["temperature"] == 0
+        assert captured["response_schema"] is schema
+
+    def test_defaults_omit_both(self, monkeypatch):
+        """A normal generate call sends neither — preserves prior behavior."""
+        monkeypatch.setattr(llm, "settings", _fake_settings(llm_provider="ollama"))
+        captured = {}
+
+        def fake_complete_ollama(prompt, system, model, max_tokens, temperature=None, response_schema=None):
+            captured["temperature"] = temperature
+            captured["response_schema"] = response_schema
+            return "ok"
+
+        monkeypatch.setattr(llm, "_complete_ollama", fake_complete_ollama)
+        llm.complete("p", purpose="generate")
+
+        assert captured["temperature"] is None
+        assert captured["response_schema"] is None

@@ -82,7 +82,7 @@ def fake_stack(monkeypatch):
 
     llm_calls = {}
 
-    def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024):
+    def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024, temperature=None, response_schema=None, provider=None, model=None):
         llm_calls["prompt"] = prompt
         llm_calls["system"] = system
         llm_calls["purpose"] = purpose
@@ -306,18 +306,45 @@ class TestCheckGrounded:
         assert result["grounded_reason"] == "Every claim matches the evidence."
 
     def test_ungrounded_verdict_returns_false(self, monkeypatch):
-        monkeypatch.setattr(graph.llm, "complete", lambda *a, **kw: "ungrounded\nPM1 was cited but never retrieved.")
-        state = {"variant": "rs28897696", "evidence": {"clinvar": {"matches": []}}, "criteria": [], "classification": "Classification: Pathogenic\nCriteria used: PM1"}
+        # PM1 IS in the retrieved criteria, so the deterministic pre-check passes
+        # and the LLM judge runs -- here it flags an unsupported fact (the kind of
+        # subtle failure only the model can catch).
+        monkeypatch.setattr(graph.llm, "complete", lambda *a, **kw: "ungrounded\nNo functional assay supports the pathogenic call.")
+        pm1_chunk = SimpleNamespace(text="PM1: located in a mutational hotspot.", source="acmg_criteria.md", score=0.9)
+        state = {"variant": "rs28897696", "evidence": {"clinvar": {"matches": []}}, "criteria": [pm1_chunk], "classification": "Classification: Pathogenic\nCriteria used: PM1"}
         result = graph.check_grounded(state)
         assert result["grounded"] is False
         # the critique is captured, not discarded -- classify() feeds it into the retry
-        assert result["grounded_reason"] == "PM1 was cited but never retrieved."
+        assert result["grounded_reason"] == "No functional assay supports the pathogenic call."
 
     def test_verdict_parsing_is_case_insensitive_and_tolerates_trailing_text(self, monkeypatch):
         monkeypatch.setattr(graph.llm, "complete", lambda *a, **kw: "GROUNDED - yes, fully supported.")
         state = {"variant": "rs28897696", "evidence": {}, "criteria": [], "classification": "x"}
         result = graph.check_grounded(state)
         assert result["grounded"] is True
+
+    def test_parses_constrained_json_verdict(self, monkeypatch):
+        # the constrained judge returns the enum+reason JSON object
+        monkeypatch.setattr(
+            graph.llm,
+            "complete",
+            lambda *a, **kw: '{"verdict": "ungrounded", "reason": "PS3 has no functional assay."}',
+        )
+        state = {"variant": "rs28897696", "evidence": {}, "criteria": [], "classification": "x"}
+        result = graph.check_grounded(state)
+        assert result["grounded"] is False
+        assert result["grounded_reason"] == "PS3 has no functional assay."
+
+    def test_parses_grounded_json_verdict(self, monkeypatch):
+        monkeypatch.setattr(
+            graph.llm,
+            "complete",
+            lambda *a, **kw: '{"verdict": "grounded", "reason": "All cited codes are present."}',
+        )
+        state = {"variant": "rs28897696", "evidence": {}, "criteria": [], "classification": "x"}
+        result = graph.check_grounded(state)
+        assert result["grounded"] is True
+        assert result["grounded_reason"] == "All cited codes are present."
 
     def test_ambiguous_verdict_defaults_to_ungrounded(self, monkeypatch):
         # conservative default: if we can't tell, don't let the graph treat it as grounded
@@ -331,9 +358,11 @@ class TestCheckGrounded:
     def test_uses_groundedness_purpose_and_small_max_tokens(self, monkeypatch):
         calls = {}
 
-        def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024):
+        def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024, temperature=None, response_schema=None, provider=None, model=None):
             calls["purpose"] = purpose
             calls["max_tokens"] = max_tokens
+            calls["temperature"] = temperature
+            calls["response_schema"] = response_schema
             return "grounded\nfine"
 
         monkeypatch.setattr(graph.llm, "complete", fake_complete)
@@ -342,6 +371,9 @@ class TestCheckGrounded:
 
         assert calls["purpose"] == "groundedness"
         assert calls["max_tokens"] <= 128
+        # the judge is pinned deterministic and constrained to the verdict enum
+        assert calls["temperature"] == 0
+        assert calls["response_schema"]["properties"]["verdict"]["enum"] == ["grounded", "ungrounded"]
 
     def test_prompt_includes_the_classification_being_verified(self, fake_stack):
         clinvar_result, chunks, llm_calls = fake_stack
@@ -365,6 +397,111 @@ class TestCheckGrounded:
         graph.check_grounded(state)
         assert "BRCA1:c.123A>G" in llm_calls["prompt"]
         assert "PVS1 applies to null variants." in llm_calls["prompt"]
+
+
+class TestParseVerdict:
+    def test_json_object_is_preferred(self):
+        grounded, reason = graph._parse_verdict('{"verdict": "grounded", "reason": "ok"}')
+        assert grounded is True
+        assert reason == "ok"
+
+    def test_falls_back_to_line_parse_when_not_json(self):
+        # a local model that ignored the schema still parses via the old contract
+        grounded, reason = graph._parse_verdict("ungrounded\nPM1 not retrieved.")
+        assert grounded is False
+        assert reason == "PM1 not retrieved."
+
+    def test_ambiguous_non_json_defaults_to_ungrounded(self):
+        grounded, _ = graph._parse_verdict("hard to say")
+        assert grounded is False
+
+    def test_json_with_unknown_verdict_falls_back(self):
+        # malformed verdict value -> don't trust it, fall back to conservative parse
+        grounded, _ = graph._parse_verdict('{"verdict": "maybe", "reason": "unsure"}')
+        assert grounded is False
+
+
+class TestGroundedSystemPrompt:
+    def test_affirms_all_tiers_are_valid(self):
+        # directly counters the observed hallucination that "Pathogenic" is invalid
+        assert "All five ACMG tiers are valid" in graph.GROUNDED_SYSTEM_PROMPT
+        assert "Pathogenic" in graph.GROUNDED_SYSTEM_PROMPT
+
+    def test_includes_few_shot_examples(self):
+        # few-shot: at least one grounded and one ungrounded exemplar
+        assert graph.GROUNDED_SYSTEM_PROMPT.count('"verdict"') >= 3
+
+
+class TestAcmgCodeExtraction:
+    def test_extracts_all_code_families(self):
+        text = "Relied on PVS1, PS3, PM2, PP3, BA1, BS1, BP4."
+        assert graph._acmg_codes(text) == {"PVS1", "PS3", "PM2", "PP3", "BA1", "BS1", "BP4"}
+
+    def test_is_case_insensitive_and_upper_cases(self):
+        assert graph._acmg_codes("pvs1 and pm2") == {"PVS1", "PM2"}
+
+    def test_strips_strength_modifier_to_base_code(self):
+        # "PM2_Supporting" is the same criterion as "PM2" for grounding purposes
+        assert graph._acmg_codes("Criteria used: PM2_Supporting, PS3_Moderate") == {"PM2", "PS3"}
+
+    def test_ignores_non_acmg_tokens(self):
+        assert graph._acmg_codes("BRCA1 c.123A>G rs28897696 Pathogenic") == set()
+
+
+class TestPrecheckGrounded:
+    """The deterministic gate that runs before the LLM judge (VA-35)."""
+
+    def test_cited_code_absent_from_criteria_is_ungrounded_without_llm(self):
+        result = graph._precheck_grounded(
+            "Classification: Pathogenic\nCriteria used: PM1",
+            criteria_text="[acmg] PVS1 applies to null variants.",
+        )
+        assert result is not None
+        assert result["grounded"] is False
+        assert "PM1" in result["grounded_reason"]
+
+    def test_all_cited_codes_present_defers_to_llm(self):
+        # every cited code is in the criteria -> pre-check can't rule; the LLM
+        # still has to check the tier and the asserted facts
+        result = graph._precheck_grounded(
+            "Classification: Benign\nCriteria used: BA1",
+            criteria_text="[acmg] BA1 applies when frequency > 5%.",
+        )
+        assert result is None
+
+    def test_no_codes_cited_defers_to_llm(self):
+        result = graph._precheck_grounded(
+            "Classification: Uncertain Significance\nCriteria used: none identified",
+            criteria_text="[acmg] PVS1 applies to null variants.",
+        )
+        assert result is None
+
+    def test_reports_every_missing_code(self):
+        result = graph._precheck_grounded(
+            "Criteria used: PM1, PS4",
+            criteria_text="[acmg] PVS1 applies to null variants.",
+        )
+        assert "PM1" in result["grounded_reason"]
+        assert "PS4" in result["grounded_reason"]
+
+    def test_check_grounded_short_circuits_and_never_calls_llm(self, monkeypatch):
+        called = {"llm": False}
+
+        def boom(*a, **kw):
+            called["llm"] = True
+            raise AssertionError("LLM judge must not run when the pre-check settles it")
+
+        monkeypatch.setattr(graph.llm, "complete", boom)
+        state = {
+            "variant": "rs28897696",
+            "evidence": {"clinvar": {"matches": []}},
+            "criteria": [SimpleNamespace(text="BA1 applies when frequency > 5%.", source="acmg_criteria.md", score=0.9)],
+            "classification": "Classification: Pathogenic\nCriteria used: PM6",  # not in criteria
+        }
+        result = graph.check_grounded(state)
+        assert called["llm"] is False
+        assert result["grounded"] is False
+        assert "PM6" in result["grounded_reason"]
 
 
 class TestGradeEvidence:
@@ -395,7 +532,7 @@ class TestGradeEvidence:
     def test_uses_grade_purpose_and_small_max_tokens(self, monkeypatch):
         calls = {}
 
-        def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024):
+        def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024, temperature=None, response_schema=None, provider=None, model=None):
             calls["purpose"] = purpose
             calls["max_tokens"] = max_tokens
             return "sufficient\nfine"
@@ -557,7 +694,7 @@ class TestBoundedRetryLoop:
 
         grade_calls = {"n": 0}
 
-        def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024):
+        def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024, temperature=None, response_schema=None, provider=None, model=None):
             if purpose == "grade":
                 idx = min(grade_calls["n"], len(grade_responses) - 1)
                 grade_calls["n"] += 1
@@ -616,7 +753,7 @@ class TestBoundedRegenerationLoop:
         classify_calls = {"n": 0}
         grounded_calls = {"n": 0}
 
-        def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024):
+        def fake_complete(prompt, system="", *, purpose="generate", max_tokens=1024, temperature=None, response_schema=None, provider=None, model=None):
             if purpose == "grade":
                 return "sufficient\nfine"
             if purpose == "groundedness":

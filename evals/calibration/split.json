@@ -1,0 +1,63 @@
+{
+  "created_at": "2026-08-03T22:51:26.618856+00:00",
+  "seed": 20260717,
+  "holdout_frac": 0.4,
+  "n_labeled": 45,
+  "dev": [
+    "gv-003",
+    "gv-004",
+    "gv-004#fab",
+    "gv-005",
+    "gv-007",
+    "gv-008",
+    "gv-009",
+    "gv-010",
+    "gv-011",
+    "gv-012",
+    "gv-013",
+    "gv-015",
+    "gv-016",
+    "gv-017",
+    "gv-022",
+    "gv-023",
+    "gv-023#fab",
+    "gv-024",
+    "gv-025",
+    "gv-026",
+    "gv-026#fab",
+    "gv-028",
+    "gv-030",
+    "gv-031",
+    "gv-033",
+    "gv-035",
+    "gv-036"
+  ],
+  "test": [
+    "gv-001",
+    "gv-002",
+    "gv-002#fab",
+    "gv-006",
+    "gv-011#fab",
+    "gv-014",
+    "gv-018",
+    "gv-019",
+    "gv-020",
+    "gv-021",
+    "gv-027",
+    "gv-029",
+    "gv-029#fab",
+    "gv-032",
+    "gv-034",
+    "gv-035#fab",
+    "gv-036#fab",
+    "syn-001"
+  ],
+  "dev_label_counts": {
+    "ungrounded": 17,
+    "grounded": 10
+  },
+  "test_label_counts": {
+    "ungrounded": 12,
+    "grounded": 6
+  }
+}

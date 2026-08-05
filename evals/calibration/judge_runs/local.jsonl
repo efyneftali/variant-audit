@@ -1,0 +1,18 @@
+{"id": "gv-019", "label": "grounded", "reason": "The classification cites PM2 as supported by the variant appearing in gnomAD with an allele frequency greater than 0%, which contradicts the stand-alone evidence provided by BA1, leading to a classification of Uncertain Significance."}
+{"id": "gv-011#fab", "label": "ungrounded", "reason": "Cites ACMG PP5, which does not appear in the retrieved criteria text."}
+{"id": "gv-020", "label": "grounded", "reason": "BA1 appears in the criteria text and the 29.95% frequency supports it."}
+{"id": "syn-001", "label": "grounded", "reason": "BA1 is supported by the 7% allele frequency, BS2 is not fully met but its support is acknowledged, and PP3 is supported by multiple lines of computational evidence."}
+{"id": "gv-032", "label": "grounded", "reason": "PM2 is supported by the variant not being found in gnomAD, and PP3 is supported by multiple lines of computational evidence suggesting a deleterious effect."}
+{"id": "gv-027", "label": "grounded", "reason": "Both PM2 and BP4 are supported by the provided evidence, and Uncertain Significance is a valid tier for conflicting pathogenic and benign criteria."}
+{"id": "gv-029#fab", "label": "ungrounded", "reason": "Cites ACMG PP5, which does not appear in the retrieved criteria text."}
+{"id": "gv-014", "label": "grounded", "reason": "PVS1 is supported by the frameshift variant leading to a premature stop codon, and PM2 is supported by the absence of the variant from population databases (gnomAD)."}
+{"id": "gv-035#fab", "label": "ungrounded", "reason": "Cites ACMG PP5, which does not appear in the retrieved criteria text."}
+{"id": "gv-001", "label": "grounded", "reason": "PM2 is supported by the variant's absence from gnomAD, PS3 is supported by well-established functional studies showing a damaging effect on the gene or gene product, and PP3 is supported by multiple lines of computational evidence supporting a deleterious effect."}
+{"id": "gv-021", "label": "grounded", "reason": "The classification cites BA1 as supported by a 7.59% allele frequency in gnomAD, which meets the threshold for a stand-alone benign criterion."}
+{"id": "gv-036#fab", "label": "ungrounded", "reason": "Cites ACMG PP5, which does not appear in the retrieved criteria text."}
+{"id": "gv-034", "label": "grounded", "reason": "PVS1 is supported by the nonsense variant, and PS3 is supported by well-established functional studies showing a damaging effect on the RB1 gene product."}
+{"id": "gv-002#fab", "label": "ungrounded", "reason": "Cites ACMG PP5, which does not appear in the retrieved criteria text."}
+{"id": "gv-029", "label": "grounded", "reason": "The classification cites PP3, which is supported by multiple lines of computational evidence suggesting a deleterious effect on conservation, evolutionary, and splicing. BA1 is also cited, but it is not supported because the allele frequency (1.3696078538792774e-06) is below 5%."}
+{"id": "gv-006", "label": "grounded", "reason": "PM5 is supported by the missense variant at a residue where a different pathogenic missense change has been seen before, and PP3 is supported by multiple lines of computational evidence suggesting a deleterious effect."}
+{"id": "gv-018", "label": "grounded", "reason": "PM2 is supported by the variant's absence from gnomAD, and PS1 is supported by the ClinVar submitter's pathogenic classification."}
+{"id": "gv-002", "label": "grounded", "reason": "The classification cites PM2 and PP3, both of which appear in the provided criteria text and are supported by the evidence: absent from gnomAD supports PM2, and multiple lines of computational evidence support a deleterious effect on BRCA2 protein supports PP3."}
