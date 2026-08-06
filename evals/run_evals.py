@@ -29,6 +29,7 @@ Usage:
     python evals/run_evals.py --skip-generation       # retrieval+classification only (cheap)
     python evals/run_evals.py                         # full run, offline against fixtures
     python evals/run_evals.py --samples 5             # 5x per variant: report generation variance (k*N LLM calls)
+    python evals/run_evals.py --samples 5 --temperature 0.0   # variance sweep at a fixed temperature (VA-41)
 
 Every run drops a timestamped report in evals/reports/ -- never overwritten, so
 a later "did this prompt change help" comparison is a diff between two files.
@@ -243,8 +244,12 @@ def wilson_ci(successes: int, n: int, z: float = 1.959963984540054) -> tuple[flo
     return (max(0.0, (center - margin) / denom), min(1.0, (center + margin) / denom))
 
 
-def eval_classification(dataset: list[dict]) -> dict:
+def eval_classification(dataset: list[dict], *, temperature: float | None = None) -> dict:
     """3-class accuracy vs ClinVar, harm-weighted error cost, abstention correctness.
+
+    temperature: forwarded to graph.ask() -- the classify() generation call only
+        (VA-41 temperature sweep). None (default) leaves the provider default in
+        place, same as before this knob existed.
 
     UNPARSEABLE predictions (see _predicted_label) stay out of the 3x3
     confusion matrix -- they're not a real P/VUS/B call, adding a 4th
@@ -268,7 +273,7 @@ def eval_classification(dataset: list[dict]) -> dict:
         variant = row["variant"]
         gold = row["gold_label"]
         try:
-            result = graph.ask(variant)
+            result = graph.ask(variant, temperature=temperature)
             predicted = _predicted_label(result.get("classification", ""))
         except Exception as exc:  # noqa: BLE001 - live tool/network calls, isolate one bad row
             errors.append({"id": row["id"], "variant": variant, "error": str(exc)})
@@ -314,8 +319,12 @@ def eval_classification(dataset: list[dict]) -> dict:
     }
 
 
-def eval_classification_multi(dataset: list[dict], k: int) -> dict:
+def eval_classification_multi(dataset: list[dict], k: int, *, temperature: float | None = None) -> dict:
     """Run eval_classification k times and report generation-run variance.
+
+    temperature: forwarded to every underlying eval_classification run (VA-41
+        temperature sweep) -- same value for all k samples, so the SD measured
+        here is run-to-run jitter AT that temperature, not a mix of settings.
 
     With the five tools frozen to fixtures (VA-39), the agent loop's only
     remaining source of run-to-run drift is the LLM itself. Repeating each
@@ -338,7 +347,7 @@ def eval_classification_multi(dataset: list[dict], k: int) -> dict:
     the by-hand abstention partition (a stable-wrong row needs a better model; a
     flip is a consistency problem).
     """
-    runs = [eval_classification(dataset) for _ in range(k)]
+    runs = [eval_classification(dataset, temperature=temperature) for _ in range(k)]
 
     # variant id -> the k predicted labels, in run order (raw per-sample outputs,
     # kept so any specific sample stays auditable from the report).
@@ -450,6 +459,8 @@ def _print_scorecard(report: dict) -> None:
     print(f"variant-audit eval report -- {report['timestamp']}")
     limit_note = f" (--limit {report['limit']})" if report["limit"] else ""
     print(f"dataset: {report['n_used']}/{report['n_dataset']} rows{limit_note}")
+    temp_note = "provider default" if report.get("temperature") is None else report["temperature"]
+    print(f"classify() temperature: {temp_note}")
     print("=" * 60)
 
     retrieval = report.get("retrieval")
@@ -544,6 +555,12 @@ def main() -> None:
         help="run classification K times per variant (3-5) to measure generation variance -- "
              "k*N LLM calls, so opt-in; default 1",
     )
+    parser.add_argument(
+        "--temperature", type=float, default=None, metavar="T",
+        help="sampling temperature for the classify() generation call (VA-41 temperature sweep) -- "
+             "None (default) sends no value and lets the provider default apply. Pair with "
+             "--samples to see whether a given temperature shrinks or just relocates the variance.",
+    )
     args = parser.parse_args()
     if args.samples < 1:
         parser.error("--samples must be >= 1")
@@ -568,11 +585,11 @@ def main() -> None:
             f"Running eval_classification {args.samples}x per variant "
             f"({len(dataset) * args.samples} agent-loop runs total -- this is the slow, k*N part)..."
         )
-        samples_result = eval_classification_multi(dataset, k=args.samples)
+        samples_result = eval_classification_multi(dataset, k=args.samples, temperature=args.temperature)
         classification_result = samples_result.pop("representative_run")
     else:
         print(f"Running eval_classification ({len(dataset)} rows through the full agent loop -- this is the slow part)...")
-        classification_result = eval_classification(dataset)
+        classification_result = eval_classification(dataset, temperature=args.temperature)
         samples_result = None
 
     report = {
@@ -584,6 +601,7 @@ def main() -> None:
         "tool_source": "fixtures (record+replay)" if args.record else "fixtures (replay)",
         "k": args.k,
         "samples": args.samples,
+        "temperature": args.temperature,
         "retrieval": retrieval_result,
         "classification": classification_result,
     }

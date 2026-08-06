@@ -86,6 +86,7 @@ def fake_stack(monkeypatch):
         llm_calls["prompt"] = prompt
         llm_calls["system"] = system
         llm_calls["purpose"] = purpose
+        llm_calls["temperature"] = temperature
         if purpose == "grade":
             # happy path: evidence is graded sufficient immediately, one pass, no retry loop
             return "sufficient\nEnough evidence to classify."
@@ -295,6 +296,27 @@ class TestClassify:
         prompt = llm_calls["prompt"]
         assert "Classification: Pathogenic\nCriteria used: PS3" in prompt  # the rejected draft
         assert "PS3 was cited but no functional-assay evidence was provided." in prompt  # the critique
+
+    def test_defaults_to_no_temperature(self, fake_stack):
+        # no "temperature" key in state at all -- must not KeyError, and must
+        # leave the provider default in place (None), same as before VA-41.
+        _, chunks, llm_calls = fake_stack
+        state = {"variant": "rs28897696", "evidence": {"clinvar": {"found": True, "matches": []}}, "criteria": chunks}
+        graph.classify(state)
+        assert llm_calls["temperature"] is None
+
+    def test_forwards_temperature_from_state(self, fake_stack):
+        # VA-41 temperature sweep: classify() must pass state["temperature"]
+        # through to the generation call unchanged.
+        _, chunks, llm_calls = fake_stack
+        state = {
+            "variant": "rs28897696",
+            "evidence": {"clinvar": {"found": True, "matches": []}},
+            "criteria": chunks,
+            "temperature": 0.7,
+        }
+        graph.classify(state)
+        assert llm_calls["temperature"] == 0.7
 
 
 class TestCheckGrounded:
@@ -823,6 +845,30 @@ class TestBuildGraphAndAsk:
         clinvar_result, _, llm_calls = fake_stack
         graph.ask("rs28897696")
         assert "BRCA1:c.123A>G" in llm_calls["prompt"]
+
+    def test_ask_forwards_temperature_to_classify_only(self, fake_stack):
+        # VA-41: ask()'s temperature must reach classify()'s generation call,
+        # but not silently change the (always-deterministic) judge calls.
+        _, _, llm_calls = fake_stack
+        purposes_seen = []
+        orig_complete = graph.llm.complete
+
+        def spy(*a, purpose="generate", temperature=None, **kw):
+            purposes_seen.append((purpose, temperature))
+            return orig_complete(*a, purpose=purpose, temperature=temperature, **kw)
+
+        graph.llm.complete = spy
+        try:
+            graph.ask("rs28897696", temperature=0.3)
+        finally:
+            graph.llm.complete = orig_complete
+
+        generate_temps = {t for p, t in purposes_seen if p == "generate"}
+        grade_temps = {t for p, t in purposes_seen if p == "grade"}
+        groundedness_temps = {t for p, t in purposes_seen if p == "groundedness"}
+        assert generate_temps == {0.3}
+        assert grade_temps == {None}
+        assert groundedness_temps == {0}
 
 
 class TestParityWithClassifyVariant:

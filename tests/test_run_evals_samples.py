@@ -31,7 +31,9 @@ def _row(id_, gold, predicted):
 def _stub_runs(monkeypatch, scripted_runs):
     """Make eval_classification return the next scripted run on each call."""
     it = iter(scripted_runs)
-    monkeypatch.setattr(run_evals, "eval_classification", lambda dataset: _single_run_report(next(it)))
+    monkeypatch.setattr(
+        run_evals, "eval_classification", lambda dataset, temperature=None: _single_run_report(next(it))
+    )
 
 
 def test_partitions_stable_and_unstable_rows(monkeypatch):
@@ -96,3 +98,19 @@ def test_single_sample_has_zero_sd(monkeypatch):
 
     assert result["accuracy_sd"] == 0.0
     assert result["mean_accuracy"] == 1.0
+
+
+def test_forwards_temperature_to_every_underlying_run(monkeypatch):
+    """VA-41: the same temperature must reach all k samples, not just the first --
+    otherwise the measured SD is jitter across a mix of settings, not at one T."""
+    seen_temperatures = []
+
+    def fake_eval_classification(dataset, temperature=None):
+        seen_temperatures.append(temperature)
+        return _single_run_report([_row("A", "P", "P")])
+
+    monkeypatch.setattr(run_evals, "eval_classification", fake_eval_classification)
+
+    run_evals.eval_classification_multi(dataset=[None], k=3, temperature=0.3)
+
+    assert seen_temperatures == [0.3, 0.3, 0.3]
