@@ -1,0 +1,1437 @@
+{
+  "timestamp": "2026-08-05T19:04:06",
+  "dataset_path": "/Users/efy/Documents/appliedAI/variant-audit/evals/golden_dataset.jsonl",
+  "n_dataset": 37,
+  "n_used": 37,
+  "limit": null,
+  "tool_source": "fixtures (replay)",
+  "k": 5,
+  "samples": 5,
+  "temperature": null,
+  "retrieval": {
+    "k": 5,
+    "n": 36,
+    "n_skipped": 1,
+    "skipped_ids": [
+      "syn-001"
+    ],
+    "n_errors": 0,
+    "errors": [],
+    "recall_at_k": 1.0,
+    "mrr": 0.8472222222222222,
+    "rows": [
+      {
+        "id": "gv-001",
+        "variant": "rs2149808371",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-002",
+        "variant": "rs886040763",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-003",
+        "variant": "rs431825307",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-004",
+        "variant": "rs794728292",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-005",
+        "variant": "rs193922757",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-006",
+        "variant": "rs199473100",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 2
+      },
+      {
+        "id": "gv-007",
+        "variant": "rs34830471",
+        "evidence_type": "population_frequency",
+        "expected_criteria": [
+          "BA1",
+          "BS1"
+        ],
+        "hit": true,
+        "rank": 2
+      },
+      {
+        "id": "gv-008",
+        "variant": "rs1800503",
+        "evidence_type": "population_frequency",
+        "expected_criteria": [
+          "BA1",
+          "BS1"
+        ],
+        "hit": true,
+        "rank": 2
+      },
+      {
+        "id": "gv-009",
+        "variant": "rs2274083",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-010",
+        "variant": "rs45550632",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 2
+      },
+      {
+        "id": "gv-011",
+        "variant": "rs7151241",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 2
+      },
+      {
+        "id": "gv-012",
+        "variant": "rs1028580",
+        "evidence_type": "population_frequency",
+        "expected_criteria": [
+          "BA1",
+          "BS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-013",
+        "variant": "rs2153826963",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-014",
+        "variant": "rs193922149",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-015",
+        "variant": "rs1114167396",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-016",
+        "variant": "rs397508070",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-017",
+        "variant": "rs1672560841",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-018",
+        "variant": "rs2151538116",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-019",
+        "variant": "rs9332618",
+        "evidence_type": "population_frequency",
+        "expected_criteria": [
+          "BA1",
+          "BS1"
+        ],
+        "hit": true,
+        "rank": 2
+      },
+      {
+        "id": "gv-020",
+        "variant": "rs2269648",
+        "evidence_type": "population_frequency",
+        "expected_criteria": [
+          "BA1",
+          "BS1"
+        ],
+        "hit": true,
+        "rank": 2
+      },
+      {
+        "id": "gv-021",
+        "variant": "rs57637273",
+        "evidence_type": "population_frequency",
+        "expected_criteria": [
+          "BA1",
+          "BS1"
+        ],
+        "hit": true,
+        "rank": 2
+      },
+      {
+        "id": "gv-022",
+        "variant": "rs765993846",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-023",
+        "variant": "rs200085496",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 2
+      },
+      {
+        "id": "gv-024",
+        "variant": "rs2514679999",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-025",
+        "variant": "rs879254816",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 2
+      },
+      {
+        "id": "gv-026",
+        "variant": "rs879254928",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-027",
+        "variant": "rs72658858",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-028",
+        "variant": "rs778528329",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-029",
+        "variant": "rs63750659",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-030",
+        "variant": "rs1553331600",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-031",
+        "variant": "rs786201688",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-032",
+        "variant": "rs1554300806",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-033",
+        "variant": "rs1554303870",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-034",
+        "variant": "rs755704180",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-035",
+        "variant": "rs111246617",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-036",
+        "variant": "rs367594943",
+        "evidence_type": "missense/computational",
+        "expected_criteria": [
+          "PP3",
+          "BP4"
+        ],
+        "hit": true,
+        "rank": 2
+      }
+    ]
+  },
+  "classification": {
+    "n": 37,
+    "n_errors": 0,
+    "n_unparseable": 0,
+    "unparseable_rows": [],
+    "accuracy": 0.7567567567567568,
+    "accuracy_ci_95": {
+      "lo": 0.5988270787855735,
+      "hi": 0.8663864701088361
+    },
+    "harm_weighted_cost_mean": 0.4864864864864865,
+    "harm_weighted_cost_total": 18,
+    "confusion_matrix": {
+      "P": {
+        "P": 10,
+        "VUS": 2,
+        "B": 0
+      },
+      "VUS": {
+        "P": 1,
+        "VUS": 12,
+        "B": 0
+      },
+      "B": {
+        "P": 1,
+        "VUS": 5,
+        "B": 6
+      }
+    },
+    "abstention": {
+      "n": 7,
+      "correct": 6,
+      "accuracy": 0.8571428571428571
+    },
+    "rows": [
+      {
+        "id": "gv-001",
+        "variant": "rs2149808371",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-002",
+        "variant": "rs886040763",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-003",
+        "variant": "rs431825307",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-004",
+        "variant": "rs794728292",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-005",
+        "variant": "rs193922757",
+        "gold": "P",
+        "predicted": "VUS",
+        "correct": false
+      },
+      {
+        "id": "gv-006",
+        "variant": "rs199473100",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-007",
+        "variant": "rs34830471",
+        "gold": "B",
+        "predicted": "VUS",
+        "correct": false
+      },
+      {
+        "id": "gv-008",
+        "variant": "rs1800503",
+        "gold": "B",
+        "predicted": "B",
+        "correct": true
+      },
+      {
+        "id": "gv-009",
+        "variant": "rs2274083",
+        "gold": "B",
+        "predicted": "B",
+        "correct": true
+      },
+      {
+        "id": "gv-010",
+        "variant": "rs45550632",
+        "gold": "B",
+        "predicted": "B",
+        "correct": true
+      },
+      {
+        "id": "gv-011",
+        "variant": "rs7151241",
+        "gold": "B",
+        "predicted": "B",
+        "correct": true
+      },
+      {
+        "id": "gv-012",
+        "variant": "rs1028580",
+        "gold": "B",
+        "predicted": "B",
+        "correct": true
+      },
+      {
+        "id": "gv-013",
+        "variant": "rs2153826963",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-014",
+        "variant": "rs193922149",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-015",
+        "variant": "rs1114167396",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-016",
+        "variant": "rs397508070",
+        "gold": "P",
+        "predicted": "VUS",
+        "correct": false
+      },
+      {
+        "id": "gv-017",
+        "variant": "rs1672560841",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-018",
+        "variant": "rs2151538116",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-019",
+        "variant": "rs9332618",
+        "gold": "B",
+        "predicted": "VUS",
+        "correct": false
+      },
+      {
+        "id": "gv-020",
+        "variant": "rs2269648",
+        "gold": "B",
+        "predicted": "VUS",
+        "correct": false
+      },
+      {
+        "id": "gv-021",
+        "variant": "rs57637273",
+        "gold": "B",
+        "predicted": "VUS",
+        "correct": false
+      },
+      {
+        "id": "gv-022",
+        "variant": "rs765993846",
+        "gold": "B",
+        "predicted": "P",
+        "correct": false
+      },
+      {
+        "id": "gv-023",
+        "variant": "rs200085496",
+        "gold": "B",
+        "predicted": "VUS",
+        "correct": false
+      },
+      {
+        "id": "gv-024",
+        "variant": "rs2514679999",
+        "gold": "B",
+        "predicted": "B",
+        "correct": true
+      },
+      {
+        "id": "gv-025",
+        "variant": "rs879254816",
+        "gold": "VUS",
+        "predicted": "P",
+        "correct": false
+      },
+      {
+        "id": "gv-026",
+        "variant": "rs879254928",
+        "gold": "VUS",
+        "predicted": "VUS",
+        "correct": true
+      },
+      {
+        "id": "gv-027",
+        "variant": "rs72658858",
+        "gold": "VUS",
+        "predicted": "VUS",
+        "correct": true
+      },
+      {
+        "id": "gv-028",
+        "variant": "rs778528329",
+        "gold": "VUS",
+        "predicted": "VUS",
+        "correct": true
+      },
+      {
+        "id": "gv-029",
+        "variant": "rs63750659",
+        "gold": "VUS",
+        "predicted": "VUS",
+        "correct": true
+      },
+      {
+        "id": "gv-030",
+        "variant": "rs1553331600",
+        "gold": "VUS",
+        "predicted": "VUS",
+        "correct": true
+      },
+      {
+        "id": "gv-031",
+        "variant": "rs786201688",
+        "gold": "VUS",
+        "predicted": "VUS",
+        "correct": true
+      },
+      {
+        "id": "gv-032",
+        "variant": "rs1554300806",
+        "gold": "VUS",
+        "predicted": "VUS",
+        "correct": true
+      },
+      {
+        "id": "gv-033",
+        "variant": "rs1554303870",
+        "gold": "VUS",
+        "predicted": "VUS",
+        "correct": true
+      },
+      {
+        "id": "gv-034",
+        "variant": "rs755704180",
+        "gold": "VUS",
+        "predicted": "VUS",
+        "correct": true
+      },
+      {
+        "id": "gv-035",
+        "variant": "rs111246617",
+        "gold": "VUS",
+        "predicted": "VUS",
+        "correct": true
+      },
+      {
+        "id": "gv-036",
+        "variant": "rs367594943",
+        "gold": "VUS",
+        "predicted": "VUS",
+        "correct": true
+      },
+      {
+        "id": "syn-001",
+        "variant": "rs61735712",
+        "gold": "VUS",
+        "predicted": "VUS",
+        "correct": true
+      }
+    ],
+    "errors": [],
+    "wall_seconds": 679.3246987499297,
+    "llm_calls": 114,
+    "llm_seconds": 669.2829403304495
+  },
+  "classification_samples": {
+    "k": 5,
+    "n": 37,
+    "per_run_accuracies": [
+      0.7567567567567568,
+      0.7567567567567568,
+      0.7297297297297297,
+      0.7027027027027027,
+      0.6216216216216216
+    ],
+    "mean_accuracy": 0.7135135135135136,
+    "accuracy_sd": 0.056044436090074944,
+    "accuracy_ci_95": {
+      "lo": 0.5421686408886435,
+      "hi": 0.8251052135016799
+    },
+    "majority_vote_accuracy": 0.7567567567567568,
+    "harm_weighted_cost_mean_over_runs": 0.5459459459459459,
+    "abstention_accuracy_mean_over_runs": 0.6857142857142857,
+    "n_errors_per_run": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "n_unparseable_per_run": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "stability": {
+      "stable_correct": 13,
+      "stable_wrong": 3,
+      "unstable": 21,
+      "unstable_ids": [
+        "gv-003",
+        "gv-006",
+        "gv-007",
+        "gv-008",
+        "gv-009",
+        "gv-011",
+        "gv-016",
+        "gv-019",
+        "gv-020",
+        "gv-021",
+        "gv-022",
+        "gv-024",
+        "gv-027",
+        "gv-029",
+        "gv-030",
+        "gv-031",
+        "gv-032",
+        "gv-033",
+        "gv-034",
+        "gv-035",
+        "syn-001"
+      ],
+      "stable_wrong_ids": [
+        "gv-005",
+        "gv-023",
+        "gv-025"
+      ]
+    },
+    "majority_confusion_matrix": {
+      "P": {
+        "P": 9,
+        "VUS": 3,
+        "B": 0
+      },
+      "VUS": {
+        "P": 2,
+        "VUS": 11,
+        "B": 0
+      },
+      "B": {
+        "P": 0,
+        "VUS": 4,
+        "B": 8
+      }
+    },
+    "llm_calls_total": 567,
+    "llm_seconds_total": 3401.0080560621573,
+    "wall_seconds_total": 3454.033280206844,
+    "wall_seconds_per_run": [
+      679.3246987499297,
+      691.2107859159587,
+      690.6533016249305,
+      713.7818754999898,
+      679.0626184160355
+    ],
+    "llm_calls_per_variant_mean": 3.0648648648648646,
+    "wall_seconds_per_variant_mean": 18.67045016328024,
+    "per_item": [
+      {
+        "id": "gv-001",
+        "variant": "rs2149808371",
+        "gold": "P",
+        "predictions": [
+          "P",
+          "P",
+          "P",
+          "P",
+          "P"
+        ],
+        "correct_count": 5,
+        "k": 5,
+        "majority_label": "P",
+        "majority_correct": true,
+        "stable": true
+      },
+      {
+        "id": "gv-002",
+        "variant": "rs886040763",
+        "gold": "P",
+        "predictions": [
+          "P",
+          "P",
+          "P",
+          "P",
+          "P"
+        ],
+        "correct_count": 5,
+        "k": 5,
+        "majority_label": "P",
+        "majority_correct": true,
+        "stable": true
+      },
+      {
+        "id": "gv-003",
+        "variant": "rs431825307",
+        "gold": "P",
+        "predictions": [
+          "P",
+          "P",
+          "P",
+          "P",
+          "VUS"
+        ],
+        "correct_count": 4,
+        "k": 5,
+        "majority_label": "P",
+        "majority_correct": true,
+        "stable": false
+      },
+      {
+        "id": "gv-004",
+        "variant": "rs794728292",
+        "gold": "P",
+        "predictions": [
+          "P",
+          "P",
+          "P",
+          "P",
+          "P"
+        ],
+        "correct_count": 5,
+        "k": 5,
+        "majority_label": "P",
+        "majority_correct": true,
+        "stable": true
+      },
+      {
+        "id": "gv-005",
+        "variant": "rs193922757",
+        "gold": "P",
+        "predictions": [
+          "VUS",
+          "VUS",
+          "VUS",
+          "VUS",
+          "VUS"
+        ],
+        "correct_count": 0,
+        "k": 5,
+        "majority_label": "VUS",
+        "majority_correct": false,
+        "stable": true
+      },
+      {
+        "id": "gv-006",
+        "variant": "rs199473100",
+        "gold": "P",
+        "predictions": [
+          "P",
+          "VUS",
+          "VUS",
+          "VUS",
+          "VUS"
+        ],
+        "correct_count": 1,
+        "k": 5,
+        "majority_label": "VUS",
+        "majority_correct": false,
+        "stable": false
+      },
+      {
+        "id": "gv-007",
+        "variant": "rs34830471",
+        "gold": "B",
+        "predictions": [
+          "VUS",
+          "B",
+          "B",
+          "B",
+          "VUS"
+        ],
+        "correct_count": 3,
+        "k": 5,
+        "majority_label": "B",
+        "majority_correct": true,
+        "stable": false
+      },
+      {
+        "id": "gv-008",
+        "variant": "rs1800503",
+        "gold": "B",
+        "predictions": [
+          "B",
+          "B",
+          "B",
+          "VUS",
+          "B"
+        ],
+        "correct_count": 4,
+        "k": 5,
+        "majority_label": "B",
+        "majority_correct": true,
+        "stable": false
+      },
+      {
+        "id": "gv-009",
+        "variant": "rs2274083",
+        "gold": "B",
+        "predictions": [
+          "B",
+          "B",
+          "B",
+          "B",
+          "VUS"
+        ],
+        "correct_count": 4,
+        "k": 5,
+        "majority_label": "B",
+        "majority_correct": true,
+        "stable": false
+      },
+      {
+        "id": "gv-010",
+        "variant": "rs45550632",
+        "gold": "B",
+        "predictions": [
+          "B",
+          "B",
+          "B",
+          "B",
+          "B"
+        ],
+        "correct_count": 5,
+        "k": 5,
+        "majority_label": "B",
+        "majority_correct": true,
+        "stable": true
+      },
+      {
+        "id": "gv-011",
+        "variant": "rs7151241",
+        "gold": "B",
+        "predictions": [
+          "B",
+          "VUS",
+          "VUS",
+          "VUS",
+          "VUS"
+        ],
+        "correct_count": 1,
+        "k": 5,
+        "majority_label": "VUS",
+        "majority_correct": false,
+        "stable": false
+      },
+      {
+        "id": "gv-012",
+        "variant": "rs1028580",
+        "gold": "B",
+        "predictions": [
+          "B",
+          "B",
+          "B",
+          "B",
+          "B"
+        ],
+        "correct_count": 5,
+        "k": 5,
+        "majority_label": "B",
+        "majority_correct": true,
+        "stable": true
+      },
+      {
+        "id": "gv-013",
+        "variant": "rs2153826963",
+        "gold": "P",
+        "predictions": [
+          "P",
+          "P",
+          "P",
+          "P",
+          "P"
+        ],
+        "correct_count": 5,
+        "k": 5,
+        "majority_label": "P",
+        "majority_correct": true,
+        "stable": true
+      },
+      {
+        "id": "gv-014",
+        "variant": "rs193922149",
+        "gold": "P",
+        "predictions": [
+          "P",
+          "P",
+          "P",
+          "P",
+          "P"
+        ],
+        "correct_count": 5,
+        "k": 5,
+        "majority_label": "P",
+        "majority_correct": true,
+        "stable": true
+      },
+      {
+        "id": "gv-015",
+        "variant": "rs1114167396",
+        "gold": "P",
+        "predictions": [
+          "P",
+          "P",
+          "P",
+          "P",
+          "P"
+        ],
+        "correct_count": 5,
+        "k": 5,
+        "majority_label": "P",
+        "majority_correct": true,
+        "stable": true
+      },
+      {
+        "id": "gv-016",
+        "variant": "rs397508070",
+        "gold": "P",
+        "predictions": [
+          "VUS",
+          "P",
+          "VUS",
+          "VUS",
+          "VUS"
+        ],
+        "correct_count": 1,
+        "k": 5,
+        "majority_label": "VUS",
+        "majority_correct": false,
+        "stable": false
+      },
+      {
+        "id": "gv-017",
+        "variant": "rs1672560841",
+        "gold": "P",
+        "predictions": [
+          "P",
+          "P",
+          "P",
+          "P",
+          "P"
+        ],
+        "correct_count": 5,
+        "k": 5,
+        "majority_label": "P",
+        "majority_correct": true,
+        "stable": true
+      },
+      {
+        "id": "gv-018",
+        "variant": "rs2151538116",
+        "gold": "P",
+        "predictions": [
+          "P",
+          "P",
+          "P",
+          "P",
+          "P"
+        ],
+        "correct_count": 5,
+        "k": 5,
+        "majority_label": "P",
+        "majority_correct": true,
+        "stable": true
+      },
+      {
+        "id": "gv-019",
+        "variant": "rs9332618",
+        "gold": "B",
+        "predictions": [
+          "VUS",
+          "VUS",
+          "B",
+          "VUS",
+          "B"
+        ],
+        "correct_count": 2,
+        "k": 5,
+        "majority_label": "VUS",
+        "majority_correct": false,
+        "stable": false
+      },
+      {
+        "id": "gv-020",
+        "variant": "rs2269648",
+        "gold": "B",
+        "predictions": [
+          "VUS",
+          "B",
+          "B",
+          "B",
+          "B"
+        ],
+        "correct_count": 4,
+        "k": 5,
+        "majority_label": "B",
+        "majority_correct": true,
+        "stable": false
+      },
+      {
+        "id": "gv-021",
+        "variant": "rs57637273",
+        "gold": "B",
+        "predictions": [
+          "VUS",
+          "B",
+          "B",
+          "VUS",
+          "B"
+        ],
+        "correct_count": 3,
+        "k": 5,
+        "majority_label": "B",
+        "majority_correct": true,
+        "stable": false
+      },
+      {
+        "id": "gv-022",
+        "variant": "rs765993846",
+        "gold": "B",
+        "predictions": [
+          "P",
+          "B",
+          "B",
+          "B",
+          "B"
+        ],
+        "correct_count": 4,
+        "k": 5,
+        "majority_label": "B",
+        "majority_correct": true,
+        "stable": false
+      },
+      {
+        "id": "gv-023",
+        "variant": "rs200085496",
+        "gold": "B",
+        "predictions": [
+          "VUS",
+          "VUS",
+          "VUS",
+          "VUS",
+          "VUS"
+        ],
+        "correct_count": 0,
+        "k": 5,
+        "majority_label": "VUS",
+        "majority_correct": false,
+        "stable": true
+      },
+      {
+        "id": "gv-024",
+        "variant": "rs2514679999",
+        "gold": "B",
+        "predictions": [
+          "B",
+          "VUS",
+          "VUS",
+          "B",
+          "VUS"
+        ],
+        "correct_count": 2,
+        "k": 5,
+        "majority_label": "VUS",
+        "majority_correct": false,
+        "stable": false
+      },
+      {
+        "id": "gv-025",
+        "variant": "rs879254816",
+        "gold": "VUS",
+        "predictions": [
+          "P",
+          "P",
+          "P",
+          "P",
+          "P"
+        ],
+        "correct_count": 0,
+        "k": 5,
+        "majority_label": "P",
+        "majority_correct": false,
+        "stable": true
+      },
+      {
+        "id": "gv-026",
+        "variant": "rs879254928",
+        "gold": "VUS",
+        "predictions": [
+          "VUS",
+          "VUS",
+          "VUS",
+          "VUS",
+          "VUS"
+        ],
+        "correct_count": 5,
+        "k": 5,
+        "majority_label": "VUS",
+        "majority_correct": true,
+        "stable": true
+      },
+      {
+        "id": "gv-027",
+        "variant": "rs72658858",
+        "gold": "VUS",
+        "predictions": [
+          "VUS",
+          "VUS",
+          "VUS",
+          "VUS",
+          "P"
+        ],
+        "correct_count": 4,
+        "k": 5,
+        "majority_label": "VUS",
+        "majority_correct": true,
+        "stable": false
+      },
+      {
+        "id": "gv-028",
+        "variant": "rs778528329",
+        "gold": "VUS",
+        "predictions": [
+          "VUS",
+          "VUS",
+          "VUS",
+          "VUS",
+          "VUS"
+        ],
+        "correct_count": 5,
+        "k": 5,
+        "majority_label": "VUS",
+        "majority_correct": true,
+        "stable": true
+      },
+      {
+        "id": "gv-029",
+        "variant": "rs63750659",
+        "gold": "VUS",
+        "predictions": [
+          "VUS",
+          "VUS",
+          "VUS",
+          "VUS",
+          "P"
+        ],
+        "correct_count": 4,
+        "k": 5,
+        "majority_label": "VUS",
+        "majority_correct": true,
+        "stable": false
+      },
+      {
+        "id": "gv-030",
+        "variant": "rs1553331600",
+        "gold": "VUS",
+        "predictions": [
+          "VUS",
+          "VUS",
+          "VUS",
+          "P",
+          "VUS"
+        ],
+        "correct_count": 4,
+        "k": 5,
+        "majority_label": "VUS",
+        "majority_correct": true,
+        "stable": false
+      },
+      {
+        "id": "gv-031",
+        "variant": "rs786201688",
+        "gold": "VUS",
+        "predictions": [
+          "VUS",
+          "VUS",
+          "VUS",
+          "VUS",
+          "P"
+        ],
+        "correct_count": 4,
+        "k": 5,
+        "majority_label": "VUS",
+        "majority_correct": true,
+        "stable": false
+      },
+      {
+        "id": "gv-032",
+        "variant": "rs1554300806",
+        "gold": "VUS",
+        "predictions": [
+          "VUS",
+          "VUS",
+          "P",
+          "VUS",
+          "VUS"
+        ],
+        "correct_count": 4,
+        "k": 5,
+        "majority_label": "VUS",
+        "majority_correct": true,
+        "stable": false
+      },
+      {
+        "id": "gv-033",
+        "variant": "rs1554303870",
+        "gold": "VUS",
+        "predictions": [
+          "VUS",
+          "P",
+          "VUS",
+          "VUS",
+          "VUS"
+        ],
+        "correct_count": 4,
+        "k": 5,
+        "majority_label": "VUS",
+        "majority_correct": true,
+        "stable": false
+      },
+      {
+        "id": "gv-034",
+        "variant": "rs755704180",
+        "gold": "VUS",
+        "predictions": [
+          "VUS",
+          "VUS",
+          "P",
+          "P",
+          "P"
+        ],
+        "correct_count": 2,
+        "k": 5,
+        "majority_label": "P",
+        "majority_correct": false,
+        "stable": false
+      },
+      {
+        "id": "gv-035",
+        "variant": "rs111246617",
+        "gold": "VUS",
+        "predictions": [
+          "VUS",
+          "VUS",
+          "P",
+          "VUS",
+          "VUS"
+        ],
+        "correct_count": 4,
+        "k": 5,
+        "majority_label": "VUS",
+        "majority_correct": true,
+        "stable": false
+      },
+      {
+        "id": "gv-036",
+        "variant": "rs367594943",
+        "gold": "VUS",
+        "predictions": [
+          "VUS",
+          "VUS",
+          "VUS",
+          "VUS",
+          "VUS"
+        ],
+        "correct_count": 5,
+        "k": 5,
+        "majority_label": "VUS",
+        "majority_correct": true,
+        "stable": true
+      },
+      {
+        "id": "syn-001",
+        "variant": "rs61735712",
+        "gold": "VUS",
+        "predictions": [
+          "VUS",
+          "P",
+          "VUS",
+          "VUS",
+          "VUS"
+        ],
+        "correct_count": 4,
+        "k": 5,
+        "majority_label": "VUS",
+        "majority_correct": true,
+        "stable": false
+      }
+    ]
+  }
+}

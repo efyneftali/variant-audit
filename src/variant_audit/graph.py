@@ -514,12 +514,15 @@ def build_graph():
     return graph.compile()
 
 
-def ask(variant: str, *, temperature: float | None = None) -> dict:
+def ask(variant: str, *, temperature: float | None = 0.0) -> dict:
     """Run one variant through the graph; return the final state.
 
-    temperature: sampling temperature for the classify() generation call only
-        (VA-41 temperature sweep). None (default) matches the prior behavior --
-        no value sent, provider default applies.
+    temperature: sampling temperature for the classify() generation call only.
+        Defaults to 0.0 -- the VA-41 decision (see TEMPERATURE_VOTING_DECISION.md):
+        a temp sweep (0.0/0.3/0.7) plus best-of-5 voting at the noisy provider
+        default both lost to plain greedy decoding on accuracy, harm-weighted
+        cost, AND latency/call-count simultaneously -- not a tradeoff, a
+        dominant option. Pass an explicit value to reproduce that investigation.
     """
     initial_state: GraphState = {
         "variant": variant,

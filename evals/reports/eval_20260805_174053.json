@@ -1,0 +1,226 @@
+{
+  "timestamp": "2026-08-05T17:40:53",
+  "dataset_path": "/Users/efy/Documents/appliedAI/variant-audit/evals/golden_dataset.jsonl",
+  "n_dataset": 37,
+  "n_used": 3,
+  "limit": 3,
+  "tool_source": "fixtures (replay)",
+  "k": 5,
+  "samples": 3,
+  "temperature": null,
+  "retrieval": {
+    "k": 5,
+    "n": 3,
+    "n_skipped": 0,
+    "skipped_ids": [],
+    "n_errors": 0,
+    "errors": [],
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "rows": [
+      {
+        "id": "gv-001",
+        "variant": "rs2149808371",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-002",
+        "variant": "rs886040763",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-003",
+        "variant": "rs431825307",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      }
+    ]
+  },
+  "classification": {
+    "n": 3,
+    "n_errors": 0,
+    "n_unparseable": 0,
+    "unparseable_rows": [],
+    "accuracy": 0.6666666666666666,
+    "accuracy_ci_95": {
+      "lo": 0.20765960080204768,
+      "hi": 0.9385080552796037
+    },
+    "harm_weighted_cost_mean": 1.0,
+    "harm_weighted_cost_total": 3,
+    "confusion_matrix": {
+      "P": {
+        "P": 2,
+        "VUS": 1,
+        "B": 0
+      },
+      "VUS": {
+        "P": 0,
+        "VUS": 0,
+        "B": 0
+      },
+      "B": {
+        "P": 0,
+        "VUS": 0,
+        "B": 0
+      }
+    },
+    "abstention": {
+      "n": 0,
+      "correct": 0,
+      "accuracy": 0.0
+    },
+    "rows": [
+      {
+        "id": "gv-001",
+        "variant": "rs2149808371",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-002",
+        "variant": "rs886040763",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-003",
+        "variant": "rs431825307",
+        "gold": "P",
+        "predicted": "VUS",
+        "correct": false
+      }
+    ],
+    "errors": [],
+    "wall_seconds": 93.17210924997926,
+    "llm_calls": 9,
+    "llm_seconds": 92.32146033318713
+  },
+  "classification_samples": {
+    "k": 3,
+    "n": 3,
+    "per_run_accuracies": [
+      0.6666666666666666,
+      1.0,
+      0.6666666666666666
+    ],
+    "mean_accuracy": 0.7777777777777777,
+    "accuracy_sd": 0.1924500897298753,
+    "accuracy_ci_95": {
+      "lo": 0.20765960080204768,
+      "hi": 0.9385080552796037
+    },
+    "majority_vote_accuracy": 0.6666666666666666,
+    "harm_weighted_cost_mean_over_runs": 0.6666666666666666,
+    "abstention_accuracy_mean_over_runs": 0.0,
+    "n_errors_per_run": [
+      0,
+      0,
+      0
+    ],
+    "n_unparseable_per_run": [
+      0,
+      0,
+      0
+    ],
+    "stability": {
+      "stable_correct": 2,
+      "stable_wrong": 0,
+      "unstable": 1,
+      "unstable_ids": [
+        "gv-003"
+      ],
+      "stable_wrong_ids": []
+    },
+    "majority_confusion_matrix": {
+      "P": {
+        "P": 2,
+        "VUS": 1,
+        "B": 0
+      },
+      "VUS": {
+        "P": 0,
+        "VUS": 0,
+        "B": 0
+      },
+      "B": {
+        "P": 0,
+        "VUS": 0,
+        "B": 0
+      }
+    },
+    "llm_calls_total": 27,
+    "llm_seconds_total": 226.32449758332223,
+    "wall_seconds_total": 228.80328812496737,
+    "wall_seconds_per_run": [
+      93.17210924997926,
+      67.33611845795531,
+      68.2950604170328
+    ],
+    "llm_calls_per_variant_mean": 3.0,
+    "wall_seconds_per_variant_mean": 25.422587569440818,
+    "per_item": [
+      {
+        "id": "gv-001",
+        "variant": "rs2149808371",
+        "gold": "P",
+        "predictions": [
+          "P",
+          "P",
+          "P"
+        ],
+        "correct_count": 3,
+        "k": 3,
+        "majority_label": "P",
+        "majority_correct": true,
+        "stable": true
+      },
+      {
+        "id": "gv-002",
+        "variant": "rs886040763",
+        "gold": "P",
+        "predictions": [
+          "P",
+          "P",
+          "P"
+        ],
+        "correct_count": 3,
+        "k": 3,
+        "majority_label": "P",
+        "majority_correct": true,
+        "stable": true
+      },
+      {
+        "id": "gv-003",
+        "variant": "rs431825307",
+        "gold": "P",
+        "predictions": [
+          "VUS",
+          "P",
+          "VUS"
+        ],
+        "correct_count": 1,
+        "k": 3,
+        "majority_label": "VUS",
+        "majority_correct": false,
+        "stable": false
+      }
+    ]
+  }
+}

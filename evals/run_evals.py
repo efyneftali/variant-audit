@@ -27,9 +27,9 @@ Usage:
     python evals/run_evals.py --record               # one-time: hit the network, freeze fixtures, then score
     python evals/run_evals.py --limit 5              # smoke test on 5 rows first (fast, offline)
     python evals/run_evals.py --skip-generation       # retrieval+classification only (cheap)
-    python evals/run_evals.py                         # full run, offline against fixtures
-    python evals/run_evals.py --samples 5             # 5x per variant: report generation variance (k*N LLM calls)
-    python evals/run_evals.py --samples 5 --temperature 0.0   # variance sweep at a fixed temperature (VA-41)
+    python evals/run_evals.py                         # full run, offline against fixtures, temperature=0.0 (VA-41 decision)
+    python evals/run_evals.py --samples 5             # 5x per variant at temp=0.0 -- SD should be ~0, that's expected
+    python evals/run_evals.py --samples 5 --temperature 0.7   # reproduce the VA-41 voting investigation at a non-zero temp
 
 Every run drops a timestamped report in evals/reports/ -- never overwritten, so
 a later "did this prompt change help" comparison is a diff between two files.
@@ -43,13 +43,15 @@ import json
 import math
 import statistics
 import sys
+import time
 from collections import Counter
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from evals import replay  # noqa: E402
+from evals import perturb, replay  # noqa: E402
 from src.variant_audit import graph  # noqa: E402
 
 DATASET = Path(__file__).parent / "golden_dataset.jsonl"
@@ -244,12 +246,41 @@ def wilson_ci(successes: int, n: int, z: float = 1.959963984540054) -> tuple[flo
     return (max(0.0, (center - margin) / denom), min(1.0, (center + margin) / denom))
 
 
-def eval_classification(dataset: list[dict], *, temperature: float | None = None) -> dict:
+@contextmanager
+def _measure_llm_calls():
+    """Count LLM calls and sum their wall-clock time for the duration of the
+    block -- the cost/latency half of the VA-41 voting decision ("voting is N
+    times the calls" needs an actual N and an actual elapsed time, not a guess).
+
+    Wraps graph.llm.complete transparently for every caller (classify,
+    grade_evidence, check_grounded) without touching src/ -- same pattern as
+    replay.py rebinding the five tool names, scoped to the eval process only.
+    """
+    real_complete = graph.llm.complete
+    stats = {"n_calls": 0, "total_seconds": 0.0}
+
+    def wrapped(*args, **kwargs):
+        start = time.perf_counter()
+        try:
+            return real_complete(*args, **kwargs)
+        finally:
+            stats["n_calls"] += 1
+            stats["total_seconds"] += time.perf_counter() - start
+
+    graph.llm.complete = wrapped
+    try:
+        yield stats
+    finally:
+        graph.llm.complete = real_complete
+
+
+def eval_classification(dataset: list[dict], *, temperature: float | None = 0.0) -> dict:
     """3-class accuracy vs ClinVar, harm-weighted error cost, abstention correctness.
 
-    temperature: forwarded to graph.ask() -- the classify() generation call only
-        (VA-41 temperature sweep). None (default) leaves the provider default in
-        place, same as before this knob existed.
+    temperature: forwarded to graph.ask() -- the classify() generation call only.
+        Defaults to 0.0, the VA-41 decision (TEMPERATURE_VOTING_DECISION.md).
+        Pass an explicit value (or None for the old provider-default behavior)
+        to reproduce the sweep/voting investigation.
 
     UNPARSEABLE predictions (see _predicted_label) stay out of the 3x3
     confusion matrix -- they're not a real P/VUS/B call, adding a 4th
@@ -269,31 +300,34 @@ def eval_classification(dataset: list[dict], *, temperature: float | None = None
     errors = []
     unparseable_rows = []
 
-    for row in dataset:
-        variant = row["variant"]
-        gold = row["gold_label"]
-        try:
-            result = graph.ask(variant, temperature=temperature)
-            predicted = _predicted_label(result.get("classification", ""))
-        except Exception as exc:  # noqa: BLE001 - live tool/network calls, isolate one bad row
-            errors.append({"id": row["id"], "variant": variant, "error": str(exc)})
-            continue
+    wall_start = time.perf_counter()
+    with _measure_llm_calls() as llm_stats:
+        for row in dataset:
+            variant = row["variant"]
+            gold = row["gold_label"]
+            try:
+                result = graph.ask(variant, temperature=temperature)
+                predicted = _predicted_label(result.get("classification", ""))
+            except Exception as exc:  # noqa: BLE001 - live tool/network calls, isolate one bad row
+                errors.append({"id": row["id"], "variant": variant, "error": str(exc)})
+                continue
 
-        if predicted == UNPARSEABLE:
-            unparseable_rows.append({"id": row["id"], "variant": variant, "gold": gold})
-            is_correct = False
-            total_cost += max(HARM_COST[gold].values())
-        else:
-            is_correct = predicted == gold
-            confusion[gold][predicted] += 1
-            total_cost += HARM_COST[gold][predicted]
-            correct += is_correct
+            if predicted == UNPARSEABLE:
+                unparseable_rows.append({"id": row["id"], "variant": variant, "gold": gold})
+                is_correct = False
+                total_cost += max(HARM_COST[gold].values())
+            else:
+                is_correct = predicted == gold
+                confusion[gold][predicted] += 1
+                total_cost += HARM_COST[gold][predicted]
+                correct += is_correct
 
-        if row.get("expected_behavior") == "abstain":
-            abstain_correct += predicted == "VUS"
-        rows_out.append(
-            {"id": row["id"], "variant": variant, "gold": gold, "predicted": predicted, "correct": is_correct}
-        )
+            if row.get("expected_behavior") == "abstain":
+                abstain_correct += predicted == "VUS"
+            rows_out.append(
+                {"id": row["id"], "variant": variant, "gold": gold, "predicted": predicted, "correct": is_correct}
+            )
+    wall_seconds = time.perf_counter() - wall_start
 
     n = len(rows_out)
     accuracy = correct / n if n else 0.0
@@ -316,15 +350,23 @@ def eval_classification(dataset: list[dict], *, temperature: float | None = None
         },
         "rows": rows_out,
         "errors": errors,
+        # cost/latency instrumentation (VA-41 part 2): wall_seconds is real
+        # elapsed time for this pass (LLM calls + retrieval + fixture reads);
+        # llm_calls/llm_seconds isolate just the model-call portion of that.
+        "wall_seconds": wall_seconds,
+        "llm_calls": llm_stats["n_calls"],
+        "llm_seconds": llm_stats["total_seconds"],
     }
 
 
-def eval_classification_multi(dataset: list[dict], k: int, *, temperature: float | None = None) -> dict:
+def eval_classification_multi(dataset: list[dict], k: int, *, temperature: float | None = 0.0) -> dict:
     """Run eval_classification k times and report generation-run variance.
 
-    temperature: forwarded to every underlying eval_classification run (VA-41
-        temperature sweep) -- same value for all k samples, so the SD measured
-        here is run-to-run jitter AT that temperature, not a mix of settings.
+    temperature: forwarded to every underlying eval_classification run -- same
+        value for all k samples, so the SD measured here is run-to-run jitter AT
+        that temperature, not a mix of settings. Defaults to 0.0 (the VA-41
+        decision), which makes k>1 samples somewhat redundant by construction --
+        pass an explicit non-zero value to reproduce the voting investigation.
 
     With the five tools frozen to fixtures (VA-39), the agent loop's only
     remaining source of run-to-run drift is the LLM itself. Repeating each
@@ -437,6 +479,21 @@ def eval_classification_multi(dataset: list[dict], k: int, *, temperature: float
             ],
         },
         "majority_confusion_matrix": majority_confusion,
+        # cost/latency instrumentation (VA-41 part 2): best-of-k is k independent
+        # eval_classification passes, so these totals scale ~k x a single-sample
+        # baseline by construction -- the "_mean" figures are the per-variant unit
+        # cost (should hold ~constant across k), the "_total" figures are what the
+        # whole harness run actually paid to get the majority-vote answer.
+        "llm_calls_total": sum(run["llm_calls"] for run in runs),
+        "llm_seconds_total": sum(run["llm_seconds"] for run in runs),
+        "wall_seconds_total": sum(run["wall_seconds"] for run in runs),
+        "wall_seconds_per_run": [run["wall_seconds"] for run in runs],
+        "llm_calls_per_variant_mean": (
+            sum(run["llm_calls"] for run in runs) / (k * n_items) if n_items else 0.0
+        ),
+        "wall_seconds_per_variant_mean": (
+            sum(run["wall_seconds"] for run in runs) / (k * n_items) if n_items else 0.0
+        ),
         "per_item": per_item_rows,
         # a representative single run, so the report keeps the classic
         # classification block (confusion matrix etc.) alongside the samples view.
@@ -449,9 +506,61 @@ def eval_generation_judge(dataset: list[dict]) -> dict:
     raise NotImplementedError("TODO(day-13): judge outputs; compare to your hand-labels")
 
 
-def eval_robustness(dataset: list[dict]) -> dict:
-    """Perturb inputs (paraphrase/noise/formatting); measure quality delta."""
-    raise NotImplementedError("TODO(day-14): perturb, re-run, report stability")
+def eval_robustness(dataset: list[dict], *, baseline: dict | None = None) -> dict:
+    """Perturb inputs (paraphrase/noise/formatting); measure quality delta (VA-13).
+
+    Reruns eval_classification against the SAME 37 rows and SAME underlying
+    facts under perturb.install() (paraphrased clinical_significance/
+    review_status/hgvs/most_severe_consequence/am_class, plus case/whitespace
+    noise -- see evals/perturb.py), and diffs it against a clean-fixture
+    baseline. Fixture lookups stay exact-match on the untouched variant id, so
+    nothing drops out; only the free text classify() reads -- and the RAG
+    query retrieve_criteria builds from that same text -- changes surface
+    form. If quality holds, that's real robustness; if accuracy drops, the
+    pipeline was leaning on exact phrasing rather than the evidence itself.
+
+    Uses the default (temperature=0.0, VA-41) config for both passes -- this
+    measures robustness AT the decided operating point, not some other one.
+
+    baseline: an already-computed eval_classification(dataset) result at
+        temperature=0.0 to reuse instead of recomputing. temp=0 is
+        deterministic, so main() passes its own classification_result here
+        when it already ran one -- recomputing would just burn another full
+        pass (~10+ min locally) for a byte-identical number.
+    """
+    replay.install()
+    if baseline is None:
+        baseline = eval_classification(dataset)
+
+    perturb.install()
+    try:
+        perturbed = eval_classification(dataset)
+    finally:
+        replay.install()  # restore clean fixtures for anything that runs after
+
+    baseline_correct = {r["id"]: r["correct"] for r in baseline["rows"]}
+    perturbed_correct = {r["id"]: r["correct"] for r in perturbed["rows"]}
+    common_ids = sorted(set(baseline_correct) & set(perturbed_correct))
+
+    flips_to_wrong = [i for i in common_ids if baseline_correct[i] and not perturbed_correct[i]]
+    flips_to_correct = [i for i in common_ids if not baseline_correct[i] and perturbed_correct[i]]
+
+    return {
+        "n": len(common_ids),
+        "baseline_accuracy": baseline["accuracy"],
+        "perturbed_accuracy": perturbed["accuracy"],
+        "accuracy_delta": perturbed["accuracy"] - baseline["accuracy"],
+        "baseline_harm_weighted_cost_mean": baseline["harm_weighted_cost_mean"],
+        "perturbed_harm_weighted_cost_mean": perturbed["harm_weighted_cost_mean"],
+        "baseline_abstention_accuracy": baseline["abstention"]["accuracy"],
+        "perturbed_abstention_accuracy": perturbed["abstention"]["accuracy"],
+        "flips_correct_to_wrong": flips_to_wrong,
+        "flips_wrong_to_correct": flips_to_correct,
+        "baseline_llm_calls": baseline["llm_calls"],
+        "perturbed_llm_calls": perturbed["llm_calls"],
+        "baseline_wall_seconds": baseline["wall_seconds"],
+        "perturbed_wall_seconds": perturbed["wall_seconds"],
+    }
 
 
 def _print_scorecard(report: dict) -> None:
@@ -487,6 +596,13 @@ def _print_scorecard(report: dict) -> None:
         )
         ab = classification["abstention"]
         print(f"abstention (expected_behavior=abstain): {ab['correct']}/{ab['n']} correct ({ab['accuracy']:.3f})")
+        if "llm_calls" in classification and classification["n"]:
+            print(
+                f"cost/latency: {classification['llm_calls']} LLM calls, "
+                f"{classification['llm_seconds']:.1f}s in-model / {classification['wall_seconds']:.1f}s wall "
+                f"for {classification['n']} variants "
+                f"({classification['llm_calls'] / classification['n']:.2f} calls/variant)"
+            )
         if classification["n_unparseable"]:
             ids = [row["id"] for row in classification["unparseable_rows"]]
             print(f"UNPARSEABLE: {classification['n_unparseable']} row(s) -- {ids}")
@@ -501,6 +617,7 @@ def _print_scorecard(report: dict) -> None:
             print(f"  {gold:>4}  " + "".join(f"{row[pred]:>6}" for pred in LABELS))
 
     _print_samples(report.get("classification_samples"))
+    _print_robustness(report.get("robustness"))
     print()
 
 
@@ -521,6 +638,15 @@ def _print_samples(samples: dict | None) -> None:
         f"harm-weighted cost: {samples['harm_weighted_cost_mean_over_runs']:.3f} mean-of-run-means   "
         f"abstention: {samples['abstention_accuracy_mean_over_runs']:.3f} mean"
     )
+    print(
+        f"cost/latency (best-of-{samples['k']}, i.e. {samples['k']}x a single-sample pass): "
+        f"{samples['llm_calls_total']} LLM calls total "
+        f"({samples['llm_calls_per_variant_mean']:.2f} calls/variant/sample), "
+        f"{samples['wall_seconds_total']:.1f}s wall total "
+        f"({samples['wall_seconds_per_variant_mean']:.2f}s/variant/sample)"
+    )
+    per_run_wall = ", ".join(f"{s:.1f}" for s in samples["wall_seconds_per_run"])
+    print(f"  per-run wall seconds: [{per_run_wall}]")
     st = samples["stability"]
     print(
         f"stability: {st['stable_correct']} stable-correct, {st['stable_wrong']} stable-wrong, "
@@ -536,6 +662,36 @@ def _print_samples(samples: dict | None) -> None:
     for gold in LABELS:
         row = samples["majority_confusion_matrix"][gold]
         print(f"  {gold:>4}  " + "".join(f"{row[pred]:>6}" for pred in LABELS))
+
+
+def _print_robustness(robustness: dict | None) -> None:
+    """Print the paraphrase/formatting-noise robustness block, when --robustness."""
+    if not robustness:
+        return
+    print(f"\n-- robustness: paraphrase + formatting noise (VA-13, n={robustness['n']}) --")
+    print(
+        f"accuracy: {robustness['baseline_accuracy']:.3f} clean -> "
+        f"{robustness['perturbed_accuracy']:.3f} perturbed "
+        f"(delta {robustness['accuracy_delta']:+.3f})"
+    )
+    print(
+        f"harm-weighted cost: {robustness['baseline_harm_weighted_cost_mean']:.3f} clean -> "
+        f"{robustness['perturbed_harm_weighted_cost_mean']:.3f} perturbed"
+    )
+    print(
+        f"abstention accuracy: {robustness['baseline_abstention_accuracy']:.3f} clean -> "
+        f"{robustness['perturbed_abstention_accuracy']:.3f} perturbed"
+    )
+    print(
+        f"cost/latency: {robustness['baseline_llm_calls']} calls / {robustness['baseline_wall_seconds']:.1f}s clean, "
+        f"{robustness['perturbed_llm_calls']} calls / {robustness['perturbed_wall_seconds']:.1f}s perturbed"
+    )
+    if robustness["flips_correct_to_wrong"]:
+        print(f"  flipped correct -> wrong under noise: {robustness['flips_correct_to_wrong']}")
+    if robustness["flips_wrong_to_correct"]:
+        print(f"  flipped wrong -> correct under noise: {robustness['flips_wrong_to_correct']}")
+    if not robustness["flips_correct_to_wrong"] and not robustness["flips_wrong_to_correct"]:
+        print("  no rows flipped either direction")
 
 
 def main() -> None:
@@ -556,10 +712,18 @@ def main() -> None:
              "k*N LLM calls, so opt-in; default 1",
     )
     parser.add_argument(
-        "--temperature", type=float, default=None, metavar="T",
-        help="sampling temperature for the classify() generation call (VA-41 temperature sweep) -- "
-             "None (default) sends no value and lets the provider default apply. Pair with "
-             "--samples to see whether a given temperature shrinks or just relocates the variance.",
+        "--temperature", type=float, default=0.0, metavar="T",
+        help="sampling temperature for the classify() generation call. Defaults to 0.0 -- the "
+             "VA-41 decision (see TEMPERATURE_VOTING_DECISION.md): beat both a temperature sweep "
+             "and best-of-5 voting on accuracy, harm cost, AND latency simultaneously. Override "
+             "to reproduce that investigation (pair with --samples for the variance/voting view).",
+    )
+    parser.add_argument(
+        "--robustness", action="store_true",
+        help="VA-13: paraphrase/formatting-noise the evidence text (evals/perturb.py) and report "
+             "the accuracy delta vs clean fixtures -- 2x eval_classification passes, so opt-in. "
+             "Always runs at temperature=0.0 (the VA-41 decision) regardless of --temperature, "
+             "since this measures robustness AT the deployed operating point.",
     )
     args = parser.parse_args()
     if args.samples < 1:
@@ -613,6 +777,20 @@ def main() -> None:
             report["generation"] = eval_generation_judge(dataset)
         except NotImplementedError:
             print("eval_generation_judge isn't implemented yet (Day 13) -- skipped.")
+
+    if args.robustness:
+        # reuse the classification pass just run above as the baseline when it
+        # already matches robustness's fixed temperature=0.0/single-sample
+        # contract -- temp=0 is deterministic, so recomputing would just burn
+        # another full pass for the identical number.
+        reusable_baseline = classification_result if (args.temperature == 0.0 and args.samples == 1) else None
+        extra_runs = len(dataset) if reusable_baseline is None else 0
+        print(
+            f"Running eval_robustness (perturbed pass over {len(dataset)} variants"
+            + (f" + {extra_runs} for a fresh temperature=0.0 baseline" if extra_runs else " -- reusing the baseline above")
+            + ")..."
+        )
+        report["robustness"] = eval_robustness(dataset, baseline=reusable_baseline)
 
     REPORTS.mkdir(exist_ok=True)
     report_path = REPORTS / f"eval_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
