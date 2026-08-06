@@ -20,7 +20,7 @@ Flow (bounded loops guarantee termination):
 
 import json
 import re
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from langgraph.graph import END, StateGraph
 
@@ -45,6 +45,11 @@ class GraphState(TypedDict):
     grounded: bool
     grounded_reason: str      # check_grounded's one-line critique, fed into the retry
     sufficient: bool          # grade_evidence's verdict: enough evidence to classify?
+    # sampling temperature for the classify() generation call only (VA-41): None
+    # (default) sends no value and lets the provider default apply, same contract
+    # as llm.complete's own temperature param. grade/groundedness are unaffected --
+    # the judge stays pinned deterministic regardless of this knob.
+    temperature: NotRequired[float | None]
 
 
 # --- nodes (each takes GraphState, returns a partial state dict) ---
@@ -275,7 +280,7 @@ def classify(state: GraphState) -> dict:
         )
     else:
         prompt += "Classify this variant."
-    answer = llm.complete(prompt, system=SYSTEM_PROMPT, purpose="generate")
+    answer = llm.complete(prompt, system=SYSTEM_PROMPT, purpose="generate", temperature=state.get("temperature"))
     return {
         "classification": answer,
         "gen_retries": state.get("gen_retries", 0) + 1 if is_retry else state.get("gen_retries", 0),
@@ -509,8 +514,16 @@ def build_graph():
     return graph.compile()
 
 
-def ask(variant: str) -> dict:
-    """Run one variant through the graph; return the final state."""
+def ask(variant: str, *, temperature: float | None = 0.0) -> dict:
+    """Run one variant through the graph; return the final state.
+
+    temperature: sampling temperature for the classify() generation call only.
+        Defaults to 0.0 -- the VA-41 decision (see TEMPERATURE_VOTING_DECISION.md):
+        a temp sweep (0.0/0.3/0.7) plus best-of-5 voting at the noisy provider
+        default both lost to plain greedy decoding on accuracy, harm-weighted
+        cost, AND latency/call-count simultaneously -- not a tradeoff, a
+        dominant option. Pass an explicit value to reproduce that investigation.
+    """
     initial_state: GraphState = {
         "variant": variant,
         "evidence": {},
@@ -521,5 +534,6 @@ def ask(variant: str) -> dict:
         "grounded": False,
         "grounded_reason": "",
         "sufficient": False,
+        "temperature": temperature,
     }
     return build_graph().invoke(initial_state)

@@ -6,7 +6,49 @@ runs are stubbed (no LLM), each returning a scripted single-run report, so we ca
 assert on exact predictions.
 """
 
+import time
+
 import evals.run_evals as run_evals
+from src.variant_audit import graph
+
+
+class TestMeasureLlmCalls:
+    """_measure_llm_calls (VA-41 part 2) wraps graph.llm.complete to count calls
+    and time them -- the cost/latency instrumentation eval_classification relies
+    on. Pure, no agent-loop dependency, so it's worth testing directly."""
+
+    def test_counts_calls_and_restores_original_after_the_block(self, monkeypatch):
+        real = lambda *a, **kw: "ok"  # noqa: E731 - trivial stand-in, not the real llm.complete
+        monkeypatch.setattr(graph.llm, "complete", real)
+
+        with run_evals._measure_llm_calls() as stats:
+            graph.llm.complete("p1")
+            graph.llm.complete("p2")
+            assert stats["n_calls"] == 2
+
+        assert graph.llm.complete is real  # unwrapped again once the block exits
+
+    def test_sums_wall_clock_time_across_calls(self, monkeypatch):
+        def slow(*a, **kw):
+            time.sleep(0.01)
+            return "ok"
+
+        monkeypatch.setattr(graph.llm, "complete", slow)
+
+        with run_evals._measure_llm_calls() as stats:
+            graph.llm.complete("p1")
+            graph.llm.complete("p2")
+
+        assert stats["n_calls"] == 2
+        assert stats["total_seconds"] >= 0.02
+
+    def test_returns_the_wrapped_call_result_unchanged(self, monkeypatch):
+        monkeypatch.setattr(graph.llm, "complete", lambda *a, **kw: "the classification text")
+
+        with run_evals._measure_llm_calls():
+            result = graph.llm.complete("p")
+
+        assert result == "the classification text"
 
 
 def _single_run_report(rows: list[dict]) -> dict:
@@ -21,6 +63,9 @@ def _single_run_report(rows: list[dict]) -> dict:
         "n_errors": 0,
         "n_unparseable": 0,
         "rows": rows,
+        "llm_calls": n,
+        "llm_seconds": float(n),
+        "wall_seconds": float(n),
     }
 
 
@@ -31,7 +76,9 @@ def _row(id_, gold, predicted):
 def _stub_runs(monkeypatch, scripted_runs):
     """Make eval_classification return the next scripted run on each call."""
     it = iter(scripted_runs)
-    monkeypatch.setattr(run_evals, "eval_classification", lambda dataset: _single_run_report(next(it)))
+    monkeypatch.setattr(
+        run_evals, "eval_classification", lambda dataset, temperature=None: _single_run_report(next(it))
+    )
 
 
 def test_partitions_stable_and_unstable_rows(monkeypatch):
@@ -96,3 +143,39 @@ def test_single_sample_has_zero_sd(monkeypatch):
 
     assert result["accuracy_sd"] == 0.0
     assert result["mean_accuracy"] == 1.0
+
+
+def test_aggregates_cost_and_latency_across_runs(monkeypatch):
+    """VA-41 part 2: best-of-k cost/latency must sum the k underlying runs'
+    llm_calls/wall_seconds, not just report one run's figures."""
+    _stub_runs(monkeypatch, [
+        [_row("A", "P", "P")],
+        [_row("A", "P", "P")],
+        [_row("A", "P", "P")],
+    ])
+    # _single_run_report(rows) sets llm_calls = wall_seconds = llm_seconds = len(rows) = 1 per run
+
+    result = run_evals.eval_classification_multi(dataset=[None], k=3)
+
+    assert result["llm_calls_total"] == 3
+    assert result["wall_seconds_total"] == 3.0
+    assert result["wall_seconds_per_run"] == [1.0, 1.0, 1.0]
+    # 3 calls total / (k=3 * n_items=1) = 1 call per variant per sample
+    assert result["llm_calls_per_variant_mean"] == 1.0
+    assert result["wall_seconds_per_variant_mean"] == 1.0
+
+
+def test_forwards_temperature_to_every_underlying_run(monkeypatch):
+    """VA-41: the same temperature must reach all k samples, not just the first --
+    otherwise the measured SD is jitter across a mix of settings, not at one T."""
+    seen_temperatures = []
+
+    def fake_eval_classification(dataset, temperature=None):
+        seen_temperatures.append(temperature)
+        return _single_run_report([_row("A", "P", "P")])
+
+    monkeypatch.setattr(run_evals, "eval_classification", fake_eval_classification)
+
+    run_evals.eval_classification_multi(dataset=[None], k=3, temperature=0.3)
+
+    assert seen_temperatures == [0.3, 0.3, 0.3]

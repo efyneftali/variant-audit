@@ -1,0 +1,205 @@
+{
+  "timestamp": "2026-08-05T13:53:56",
+  "dataset_path": "/Users/efy/Documents/appliedAI/variant-audit/evals/golden_dataset.jsonl",
+  "n_dataset": 37,
+  "n_used": 3,
+  "limit": 3,
+  "tool_source": "fixtures (replay)",
+  "k": 5,
+  "samples": 2,
+  "temperature": 0.0,
+  "retrieval": {
+    "k": 5,
+    "n": 3,
+    "n_skipped": 0,
+    "skipped_ids": [],
+    "n_errors": 0,
+    "errors": [],
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "rows": [
+      {
+        "id": "gv-001",
+        "variant": "rs2149808371",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-002",
+        "variant": "rs886040763",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      },
+      {
+        "id": "gv-003",
+        "variant": "rs431825307",
+        "evidence_type": "frameshift/LoF",
+        "expected_criteria": [
+          "PVS1"
+        ],
+        "hit": true,
+        "rank": 1
+      }
+    ]
+  },
+  "classification": {
+    "n": 3,
+    "n_errors": 0,
+    "n_unparseable": 0,
+    "unparseable_rows": [],
+    "accuracy": 1.0,
+    "accuracy_ci_95": {
+      "lo": 0.4385029682449545,
+      "hi": 1.0
+    },
+    "harm_weighted_cost_mean": 0.0,
+    "harm_weighted_cost_total": 0,
+    "confusion_matrix": {
+      "P": {
+        "P": 3,
+        "VUS": 0,
+        "B": 0
+      },
+      "VUS": {
+        "P": 0,
+        "VUS": 0,
+        "B": 0
+      },
+      "B": {
+        "P": 0,
+        "VUS": 0,
+        "B": 0
+      }
+    },
+    "abstention": {
+      "n": 0,
+      "correct": 0,
+      "accuracy": 0.0
+    },
+    "rows": [
+      {
+        "id": "gv-001",
+        "variant": "rs2149808371",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-002",
+        "variant": "rs886040763",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      },
+      {
+        "id": "gv-003",
+        "variant": "rs431825307",
+        "gold": "P",
+        "predicted": "P",
+        "correct": true
+      }
+    ],
+    "errors": []
+  },
+  "classification_samples": {
+    "k": 2,
+    "n": 3,
+    "per_run_accuracies": [
+      1.0,
+      1.0
+    ],
+    "mean_accuracy": 1.0,
+    "accuracy_sd": 0.0,
+    "accuracy_ci_95": {
+      "lo": 0.4385029682449545,
+      "hi": 1.0
+    },
+    "majority_vote_accuracy": 1.0,
+    "harm_weighted_cost_mean_over_runs": 0.0,
+    "abstention_accuracy_mean_over_runs": 0.0,
+    "n_errors_per_run": [
+      0,
+      0
+    ],
+    "n_unparseable_per_run": [
+      0,
+      0
+    ],
+    "stability": {
+      "stable_correct": 3,
+      "stable_wrong": 0,
+      "unstable": 0,
+      "unstable_ids": [],
+      "stable_wrong_ids": []
+    },
+    "majority_confusion_matrix": {
+      "P": {
+        "P": 3,
+        "VUS": 0,
+        "B": 0
+      },
+      "VUS": {
+        "P": 0,
+        "VUS": 0,
+        "B": 0
+      },
+      "B": {
+        "P": 0,
+        "VUS": 0,
+        "B": 0
+      }
+    },
+    "per_item": [
+      {
+        "id": "gv-001",
+        "variant": "rs2149808371",
+        "gold": "P",
+        "predictions": [
+          "P",
+          "P"
+        ],
+        "correct_count": 2,
+        "k": 2,
+        "majority_label": "P",
+        "majority_correct": true,
+        "stable": true
+      },
+      {
+        "id": "gv-002",
+        "variant": "rs886040763",
+        "gold": "P",
+        "predictions": [
+          "P",
+          "P"
+        ],
+        "correct_count": 2,
+        "k": 2,
+        "majority_label": "P",
+        "majority_correct": true,
+        "stable": true
+      },
+      {
+        "id": "gv-003",
+        "variant": "rs431825307",
+        "gold": "P",
+        "predictions": [
+          "P",
+          "P"
+        ],
+        "correct_count": 2,
+        "k": 2,
+        "majority_label": "P",
+        "majority_correct": true,
+        "stable": true
+      }
+    ]
+  }
+}
